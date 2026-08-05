@@ -12,7 +12,10 @@ export const leadInputSchema = z.object({
   city: optionalText(80),
   industry: optionalText(80),
   source: optionalText(80),
-  valuePaise: z.coerce.number().int().min(0).max(2_000_000_000).optional(),
+  valuePaise: z.preprocess(
+    (value) => value === "" || value === null ? null : value,
+    z.coerce.number().int().min(0).max(2_000_000_000).nullable().optional(),
+  ),
   status: leadStatusSchema.default("NEW"),
   notes: optionalText(2000),
   updatedAt: z.coerce.date().optional(),

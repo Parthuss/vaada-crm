@@ -18,6 +18,13 @@ export async function POST(request: Request) {
       const exists = await db.lead.count({ where: { id: input.leadId, ownerId, archivedAt: null } });
       if (!exists) throw new Error("NOT_FOUND");
     }
+    if (input.useCase === "DAILY_BRIEF") {
+      const referenced = [...new Set(input.result.priorities.map((item) => item.leadId))];
+      if (referenced.length) {
+        const owned = await db.lead.count({ where: { id: { in: referenced }, ownerId, archivedAt: null } });
+        if (owned !== referenced.length) throw new Error("NOT_FOUND");
+      }
+    }
     const saved = await db.aIResult.create({ data: { ownerId, leadId: input.leadId ?? null, useCase: input.useCase, model: input.model, result: input.result } });
     return Response.json({ data: saved }, { status: 201 });
   } catch (error) { return apiError(error); }

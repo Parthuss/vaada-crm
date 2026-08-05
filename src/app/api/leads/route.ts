@@ -1,19 +1,20 @@
 import { apiError, cleanOptional } from "@/lib/api";
 import { db } from "@/lib/db";
-import { leadInputSchema } from "@/lib/domain/schemas";
+import { leadInputSchema, leadStatusSchema } from "@/lib/domain/schemas";
 import { requireUserId } from "@/lib/session";
 
 export async function GET(request: Request) {
   try {
     const ownerId = await requireUserId();
     const { searchParams } = new URL(request.url);
-    const status = searchParams.get("status") || undefined;
+    const statusParam = searchParams.get("status");
+    const status = statusParam ? leadStatusSchema.parse(statusParam) : undefined;
     const query = searchParams.get("q")?.trim();
     const leads = await db.lead.findMany({
       where: {
         ownerId,
         archivedAt: null,
-        ...(status ? { status: status as never } : {}),
+        ...(status ? { status } : {}),
         ...(query
           ? {
               OR: [

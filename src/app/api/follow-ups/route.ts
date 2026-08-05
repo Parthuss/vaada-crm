@@ -8,7 +8,7 @@ export async function GET(request: Request) {
   try {
     const ownerId = await requireUserId();
     const items = await db.followUp.findMany({
-      where: { ownerId },
+      where: { ownerId, lead: { archivedAt: null } },
       include: {
         lead: {
           select: {

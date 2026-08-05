@@ -11,7 +11,7 @@ import {
   Sparkles,
   WandSparkles,
 } from "lucide-react";
-import { formatDateTime, formatInr } from "@/lib/format";
+import { formatDateTime, formatInr, formatStatus } from "@/lib/format";
 
 type FollowUp = {
   id: string;
@@ -50,6 +50,7 @@ type Draft = {
   callToAction: string;
   safetyNote: string;
 };
+type AiOrigin = { source: "gemini" | "fallback"; model?: string };
 const statuses = ["NEW", "CONTACTED", "QUALIFIED", "PROPOSAL", "WON", "LOST"];
 
 export function LeadDetailClient({ initialLead }: { initialLead: Lead }) {
@@ -60,48 +61,61 @@ export function LeadDetailClient({ initialLead }: { initialLead: Lead }) {
   const [aiLoading, setAiLoading] = useState<"insight" | "draft" | "">("");
   const [insight, setInsight] = useState<Insight | null>(null);
   const [draft, setDraft] = useState<Draft | null>(null);
+  const [insightOrigin, setInsightOrigin] = useState<AiOrigin | null>(null);
+  const [draftOrigin, setDraftOrigin] = useState<AiOrigin | null>(null);
   const [warning, setWarning] = useState("");
   async function saveLead(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSaving(true);
     setMessage("");
-    const data = Object.fromEntries(new FormData(event.currentTarget));
-    data.valuePaise = String(Math.round(Number(data.valueRupees || 0) * 100));
+    const data: Record<string, FormDataEntryValue | null> = Object.fromEntries(new FormData(event.currentTarget));
+    const rupees = String(data.valueRupees ?? "").trim();
+    data.valuePaise = rupees ? String(Math.round(Number(rupees) * 100)) : null;
     delete data.valueRupees;
     data.updatedAt = lead.updatedAt;
+    try {
     const response = await fetch(`/api/leads/${lead.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     });
-    const payload = await response.json();
+    const payload = await response.json().catch(() => null);
     if (!response.ok)
-      setMessage(payload.error?.message ?? "Could not save changes.");
+      setMessage(payload?.error?.message ?? "Could not save changes.");
     else {
       setLead((current) => ({ ...current, ...payload.data }));
       setMessage("Changes saved.");
       router.refresh();
     }
-    setSaving(false);
+    } catch {
+      setMessage("Connection lost. Check your network and try again.");
+    } finally {
+      setSaving(false);
+    }
   }
   async function runInsight() {
     setAiLoading("insight");
     setWarning("");
+    try {
     const response = await fetch("/api/ai/lead-insight", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ leadId: lead.id }),
     });
-    const payload = await response.json();
+    const payload = await response.json().catch(() => null);
     if (response.ok) {
       setInsight(payload.data);
+      setInsightOrigin({ source: payload.source, model: payload.model });
       setWarning(payload.warning ?? "");
-    } else setWarning(payload.error?.message ?? "AI could not respond.");
-    setAiLoading("");
+    } else setWarning(payload?.error?.message ?? "AI could not respond.");
+    } catch {
+      setWarning("Connection lost. Check your network and try again.");
+    } finally { setAiLoading(""); }
   }
   async function runDraft() {
     setAiLoading("draft");
     setWarning("");
+    try {
     const response = await fetch("/api/ai/message-draft", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -112,24 +126,29 @@ export function LeadDetailClient({ initialLead }: { initialLead: Lead }) {
         goal: "Agree on a specific next step",
       }),
     });
-    const payload = await response.json();
+    const payload = await response.json().catch(() => null);
     if (response.ok) {
       setDraft(payload.data);
+      setDraftOrigin({ source: payload.source, model: payload.model });
       setWarning(payload.warning ?? "");
-    } else setWarning(payload.error?.message ?? "AI could not respond.");
-    setAiLoading("");
+    } else setWarning(payload?.error?.message ?? "AI could not respond.");
+    } catch {
+      setWarning("Connection lost. Check your network and try again.");
+    } finally { setAiLoading(""); }
   }
   async function saveAi(
     useCase: "LEAD_INSIGHT" | "MESSAGE_DRAFT",
     result: Insight | Draft,
+    origin: AiOrigin | null,
   ) {
+    try {
     const response = await fetch("/api/ai/results", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         useCase,
         leadId: lead.id,
-        model: warning ? "rules-fallback-v1" : "gemini-3.5-flash-lite",
+        model: origin?.source === "fallback" ? "rules-fallback-v1" : origin?.model ?? "gemini",
         result,
       }),
     });
@@ -138,6 +157,7 @@ export function LeadDetailClient({ initialLead }: { initialLead: Lead }) {
         ? "AI result saved to this lead."
         : "Could not save the AI result.",
     );
+    } catch { setMessage("Connection lost. Check your network and try again."); }
   }
   async function archiveLead() {
     if (
@@ -146,11 +166,13 @@ export function LeadDetailClient({ initialLead }: { initialLead: Lead }) {
       )
     )
       return;
+    try {
     const response = await fetch(`/api/leads/${lead.id}`, { method: "DELETE" });
     if (response.ok) {
       router.push("/leads");
       router.refresh();
     } else setMessage("Could not archive this lead.");
+    } catch { setMessage("Connection lost. Check your network and try again."); }
   }
   return (
     <div className="page">
@@ -166,7 +188,7 @@ export function LeadDetailClient({ initialLead }: { initialLead: Lead }) {
             {formatInr(lead.valuePaise)}
           </p>
         </div>
-        <span className="badge">{lead.status}</span>
+        <span className="badge">{formatStatus(lead.status)}</span>
       </header>
       <section className="grid detail-grid">
         <div className="grid">
@@ -219,6 +241,8 @@ export function LeadDetailClient({ initialLead }: { initialLead: Lead }) {
                   className="input"
                   id="phone"
                   name="phone"
+                  inputMode="tel"
+                  maxLength={20}
                   defaultValue={lead.phone ?? ""}
                 />
               </div>
@@ -257,7 +281,8 @@ export function LeadDetailClient({ initialLead }: { initialLead: Lead }) {
                   name="valueRupees"
                   type="number"
                   min="0"
-                  defaultValue={(lead.valuePaise ?? 0) / 100}
+                  max="20000000"
+                  defaultValue={lead.valuePaise == null ? "" : lead.valuePaise / 100}
                 />
               </div>
               <div className="field full">
@@ -269,7 +294,7 @@ export function LeadDetailClient({ initialLead }: { initialLead: Lead }) {
                   defaultValue={lead.status}
                 >
                   {statuses.map((status) => (
-                    <option key={status}>{status}</option>
+                    <option key={status} value={status}>{formatStatus(status)}</option>
                   ))}
                 </select>
               </div>
@@ -291,6 +316,7 @@ export function LeadDetailClient({ initialLead }: { initialLead: Lead }) {
                       : "field-error full"
                   }
                   role="status"
+                  aria-live="polite"
                 >
                   {message}
                 </p>
@@ -371,7 +397,7 @@ export function LeadDetailClient({ initialLead }: { initialLead: Lead }) {
             </button>
           </div>
           {warning && (
-            <p className="notice" role="status">
+            <p className="notice" role="status" aria-live="polite">
               {warning}
             </p>
           )}
@@ -394,7 +420,7 @@ export function LeadDetailClient({ initialLead }: { initialLead: Lead }) {
               <p className="subtle">{insight.caveat}</p>
               <button
                 className="button secondary"
-                onClick={() => saveAi("LEAD_INSIGHT", insight)}
+                onClick={() => saveAi("LEAD_INSIGHT", insight, insightOrigin)}
               >
                 <Check size={14} />
                 Save insight
@@ -416,7 +442,7 @@ export function LeadDetailClient({ initialLead }: { initialLead: Lead }) {
               <p className="subtle">{draft.safetyNote}</p>
               <button
                 className="button secondary"
-                onClick={() => saveAi("MESSAGE_DRAFT", draft)}
+                onClick={() => saveAi("MESSAGE_DRAFT", draft, draftOrigin)}
               >
                 <Check size={14} />
                 Save draft

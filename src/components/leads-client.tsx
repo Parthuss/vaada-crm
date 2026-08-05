@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Search, X } from "lucide-react";
-import { formatDateTime, formatInr } from "@/lib/format";
+import { formatDateTime, formatInr, formatStatus } from "@/lib/format";
+import { useDialogA11y } from "@/components/use-dialog-a11y";
 
 type Lead = {
   id: string;
@@ -37,6 +38,11 @@ export function LeadsClient({
   const [status, setStatus] = useState("ALL");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
+  const closeDialog = () => {
+    setDialog(false);
+    setError("");
+  };
+  const dialogRef = useDialogA11y(dialog, closeDialog);
   const filtered = useMemo(
     () =>
       leads.filter(
@@ -53,31 +59,34 @@ export function LeadsClient({
     event.preventDefault();
     setPending(true);
     setError("");
-    const form = new FormData(event.currentTarget);
-    const body = Object.fromEntries(form);
-    body.valuePaise = String(
-      Math.round(Number(form.get("valueRupees") || 0) * 100),
-    );
-    delete body.valueRupees;
-    const response = await fetch("/api/leads", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-    const payload = await response.json();
-    if (!response.ok) {
-      setError(payload.error?.message ?? "Could not add this lead.");
+    try {
+      const form = new FormData(event.currentTarget);
+      const body: Record<string, FormDataEntryValue | null> = Object.fromEntries(form);
+      const rupees = String(form.get("valueRupees") ?? "").trim();
+      body.valuePaise = rupees ? String(Math.round(Number(rupees) * 100)) : null;
+      delete body.valueRupees;
+      const response = await fetch("/api/leads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok) {
+        setError(payload?.error?.message ?? "Could not add this lead.");
+        return;
+      }
+      setLeads((current) => [
+        { ...payload.data, updatedAt: payload.data.updatedAt, followUps: [] },
+        ...current,
+      ]);
+      closeDialog();
+      router.replace("/leads");
+      router.refresh();
+    } catch {
+      setError("Connection lost. Check your network and try again.");
+    } finally {
       setPending(false);
-      return;
     }
-    setLeads((current) => [
-      { ...payload.data, updatedAt: payload.data.updatedAt, followUps: [] },
-      ...current,
-    ]);
-    setDialog(false);
-    setPending(false);
-    router.replace("/leads");
-    router.refresh();
   }
   return (
     <div className="page">
@@ -109,6 +118,8 @@ export function LeadsClient({
             />
             <input
               className="input"
+              type="search"
+              name="query"
               style={{ paddingLeft: 39 }}
               placeholder="Search name, company, or source"
               value={query}
@@ -124,25 +135,26 @@ export function LeadsClient({
           >
             <option value="ALL">All statuses</option>
             {statuses.map((item) => (
-              <option key={item}>{item}</option>
+              <option key={item} value={item}>{formatStatus(item)}</option>
             ))}
           </select>
         </div>
         <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Lead</th>
-                <th>Status</th>
-                <th>Value</th>
-                <th>Next promise</th>
-                <th>Updated</th>
+          <table className="leads-table" role="table">
+            <caption className="sr-only">Leads with their status, value, next promise, and last update</caption>
+            <thead role="rowgroup">
+              <tr role="row">
+                <th role="columnheader">Lead</th>
+                <th role="columnheader">Status</th>
+                <th role="columnheader">Value</th>
+                <th role="columnheader">Next promise</th>
+                <th role="columnheader">Updated</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody role="rowgroup">
               {filtered.map((lead) => (
-                <tr key={lead.id}>
-                  <td>
+                <tr role="row" key={lead.id}>
+                  <td role="cell" data-label="Lead">
                     <Link href={`/leads/${lead.id}`}>
                       <span className="lead-name">{lead.company}</span>
                       <div className="subtle">
@@ -150,18 +162,18 @@ export function LeadsClient({
                       </div>
                     </Link>
                   </td>
-                  <td>
-                    <span className="badge">{lead.status}</span>
+                  <td role="cell" data-label="Status">
+                    <span className="badge">{formatStatus(lead.status)}</span>
                   </td>
-                  <td>{formatInr(lead.valuePaise)}</td>
-                  <td>
+                  <td role="cell" data-label="Value">{formatInr(lead.valuePaise)}</td>
+                  <td role="cell" data-label="Next promise">
                     {lead.followUps[0] ? (
                       formatDateTime(lead.followUps[0].dueAt)
                     ) : (
                       <span className="subtle">Not scheduled</span>
                     )}
                   </td>
-                  <td className="subtle">{formatDateTime(lead.updatedAt)}</td>
+                  <td role="cell" className="subtle" data-label="Updated">{formatDateTime(lead.updatedAt)}</td>
                 </tr>
               ))}
             </tbody>
@@ -179,11 +191,12 @@ export function LeadsClient({
           className="dialog-backdrop"
           role="presentation"
           onMouseDown={(event) => {
-            if (event.target === event.currentTarget) setDialog(false);
+            if (event.target === event.currentTarget) closeDialog();
           }}
         >
           <div
             className="dialog"
+            ref={dialogRef}
             role="dialog"
             aria-modal="true"
             aria-labelledby="new-lead-heading"
@@ -197,7 +210,7 @@ export function LeadsClient({
                 className="button secondary"
                 style={{ padding: 0, width: 42 }}
                 aria-label="Close"
-                onClick={() => setDialog(false)}
+                onClick={closeDialog}
               >
                 <X size={17} />
               </button>
@@ -235,6 +248,7 @@ export function LeadsClient({
                   id="phone"
                   name="phone"
                   inputMode="tel"
+                  maxLength={20}
                 />
               </div>
               <div className="field">
@@ -253,6 +267,7 @@ export function LeadsClient({
                   name="valueRupees"
                   type="number"
                   min="0"
+                  max="20000000"
                   step="1"
                 />
               </div>
@@ -260,7 +275,7 @@ export function LeadsClient({
                 <label htmlFor="status">Status</label>
                 <select className="input" id="status" name="status">
                   {statuses.map((item) => (
-                    <option key={item}>{item}</option>
+                    <option key={item} value={item}>{formatStatus(item)}</option>
                   ))}
                 </select>
               </div>
@@ -284,7 +299,7 @@ export function LeadsClient({
                 />
               </div>
               {error && (
-                <p className="field-error full" role="alert">
+                <p className="field-error full" role="alert" aria-live="assertive">
                   {error}
                 </p>
               )}
@@ -292,7 +307,7 @@ export function LeadsClient({
                 <button
                   type="button"
                   className="button secondary"
-                  onClick={() => setDialog(false)}
+                  onClick={closeDialog}
                 >
                   Cancel
                 </button>

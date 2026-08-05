@@ -13,6 +13,7 @@ export function messageFallback(lead: Lead, channel: "WHATSAPP" | "SMS" | "EMAIL
 }
 
 export function dailyBriefFallback(leads: Lead[]): DailyBrief {
+  if (!leads.length) return { summary: "No active leads yet, so there is nothing to prioritise today.", priorities: [], risks: [], wins: ["A clear pipeline is a good place to start adding leads."] };
   const priorities = leads.slice(0, 5).map((lead) => ({ leadId: lead.id, company: lead.company, reason: lead.followUps?.some((item) => !item.completedAt && item.dueAt < new Date()) ? "An open follow-up is overdue." : "This lead has an open next step.", action: lead.followUps?.find((item) => !item.completedAt)?.note ?? "Schedule a specific next step." }));
   return { summary: `${priorities.length} lead${priorities.length === 1 ? "" : "s"} need attention based on current CRM data.`, priorities, risks: priorities.length ? ["Delayed follow-ups can weaken active conversations."] : [], wins: ["Your brief remains available even while Gemini is unavailable."] };
 }

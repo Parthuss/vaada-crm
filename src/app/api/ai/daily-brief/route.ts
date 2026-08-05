@@ -10,6 +10,7 @@ export async function POST() {
   try {
     const ownerId = await requireUserId();
     const leads = await db.lead.findMany({ where: { ownerId, archivedAt: null, status: { notIn: ["WON", "LOST"] } }, include: { followUps: { orderBy: { dueAt: "asc" }, take: 6 } }, orderBy: { updatedAt: "desc" }, take: 30 });
+    if (!leads.length) return Response.json({ data: dailyBriefFallback([]), source: "fallback", warning: "You have no active leads yet. Add a lead to get a prioritised brief." });
     const context = leads.map(buildLeadContext);
     try {
       const result = await generateStructured({ ownerId, useCase: "DAILY_BRIEF", context, instruction: "Create today's sales brief. Prioritize at most six leads using overdue commitments, pipeline value, and stage. Lead IDs must come exactly from context.", schema: dailyBriefSchema });

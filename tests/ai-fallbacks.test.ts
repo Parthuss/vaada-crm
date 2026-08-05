@@ -27,7 +27,9 @@ describe("safe AI fallbacks", () => {
 
   it("handles an empty CRM without fabricating priorities", () => {
     const result = dailyBriefFallback([]);
+    expect(dailyBriefSchema.parse(result)).toEqual(result);
     expect(result.priorities).toEqual([]);
-    expect(result.summary).toContain("0 leads");
+    expect(result.risks).toEqual([]);
+    expect(result.summary).toMatch(/no active leads/i);
   });
 });

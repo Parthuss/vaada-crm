@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Check, Pencil, Plus, Trash2, X } from "lucide-react";
 import { formatInTimeZone } from "date-fns-tz";
 import { formatDateTime } from "@/lib/format";
+import { useDialogA11y } from "@/components/use-dialog-a11y";
 
 type Item = {
   id: string;
@@ -38,73 +39,73 @@ export function FollowUpsClient({
   const [editing, setEditing] = useState<Item | null>(null);
   const [pending, setPending] = useState("");
   const [error, setError] = useState("");
+  const closeDialog = () => {
+    setDialog(false);
+    setEditing(null);
+    setError("");
+  };
+  const dialogRef = useDialogA11y(dialog, closeDialog);
   async function complete(id: string) {
     setPending(id);
-    const response = await fetch(`/api/follow-ups/${id}/complete`, {
-      method: "POST",
-    });
-    if (response.ok)
-      setItems((current) =>
-        current.map((item) =>
-          item.id === id
-            ? {
-                ...item,
-                completedAt: new Date().toISOString(),
-                bucket: "COMPLETED",
-              }
-            : item,
-        ),
-      );
-    setPending("");
+    setError("");
+    try {
+      const response = await fetch(`/api/follow-ups/${id}/complete`, { method: "POST" });
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null);
+        setError(payload?.error?.message ?? "Could not complete this follow-up.");
+        return;
+      }
+      setItems((current) => current.map((item) => item.id === id ? { ...item, completedAt: new Date().toISOString(), bucket: "COMPLETED" } : item));
+    } catch {
+      setError("Connection lost. Check your network and try again.");
+    } finally {
+      setPending("");
+    }
   }
   async function saveFollowUp(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setPending("create");
     setError("");
-    const form = new FormData(event.currentTarget);
-    const body = Object.fromEntries(form);
-    const response = await fetch(
-      editing ? `/api/follow-ups/${editing.id}` : "/api/follow-ups",
-      {
+    try {
+      const form = new FormData(event.currentTarget);
+      const body = Object.fromEntries(form);
+      const response = await fetch(editing ? `/api/follow-ups/${editing.id}` : "/api/follow-ups", {
         method: editing ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
-      },
-    );
-    const payload = await response.json();
-    if (!response.ok) {
-      setError(payload.error?.message ?? "Could not schedule the follow-up.");
+      });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok) {
+        setError(payload?.error?.message ?? "Could not schedule the follow-up.");
+        return;
+      }
+      const lead = leads.find((item) => item.id === payload.data.leadId);
+      if (!lead) {
+        setError("The selected lead is no longer available. Refresh and try again.");
+        return;
+      }
+      const prepared = { ...payload.data, dueAt: payload.data.dueAt, completedAt: null, bucket: bucketFor(payload.data.dueAt), lead };
+      setItems((current) => editing ? current.map((item) => (item.id === editing.id ? prepared : item)) : [prepared, ...current]);
+      closeDialog();
+    } catch {
+      setError("Connection lost. Check your network and try again.");
+    } finally {
       setPending("");
-      return;
     }
-    const lead = leads.find((item) => item.id === payload.data.leadId)!;
-    const prepared = {
-      ...payload.data,
-      dueAt: payload.data.dueAt,
-      completedAt: null,
-      bucket: bucketFor(payload.data.dueAt),
-      lead,
-    };
-    setItems((current) =>
-      editing
-        ? current.map((item) => (item.id === editing.id ? prepared : item))
-        : [prepared, ...current],
-    );
-    setDialog(false);
-    setEditing(null);
-    setPending("");
   }
   async function remove(item: Item) {
     if (!window.confirm(`Delete this follow-up for ${item.lead.company}?`))
       return;
     setPending(item.id);
-    const response = await fetch(`/api/follow-ups/${item.id}`, {
-      method: "DELETE",
-    });
-    if (response.ok)
-      setItems((current) => current.filter((entry) => entry.id !== item.id));
-    else setError("Could not delete this follow-up.");
-    setPending("");
+    try {
+      const response = await fetch(`/api/follow-ups/${item.id}`, { method: "DELETE" });
+      if (response.ok) setItems((current) => current.filter((entry) => entry.id !== item.id));
+      else setError("Could not delete this follow-up.");
+    } catch {
+      setError("Connection lost. Check your network and try again.");
+    } finally {
+      setPending("");
+    }
   }
   const open = items.filter((item) => !item.completedAt);
   const done = items.filter((item) => item.completedAt);
@@ -130,6 +131,7 @@ export function FollowUpsClient({
           Schedule follow-up
         </button>
       </header>
+      {error && !dialog && <p className="field-error" role="alert" aria-live="assertive">{error}</p>}
       <section className="card">
         <header className="card-head">
           <h2>Open</h2>
@@ -138,7 +140,7 @@ export function FollowUpsClient({
         <div className="card-body attention-list">
           {open.map((item) => (
             <div className="attention-row" key={item.id}>
-              <span className={`dot ${item.bucket.toLowerCase()}`} />
+              <span className={`dot ${item.bucket.toLowerCase()}`} aria-hidden="true" />
               <div>
                 <Link href={`/leads/${item.lead.id}`}>
                   <strong>{item.lead.company}</strong>
@@ -203,6 +205,7 @@ export function FollowUpsClient({
                 <span
                   className="dot"
                   style={{ background: "var(--primary)" }}
+                  aria-hidden="true"
                 />
                 <div>
                   <strong>{item.lead.company}</strong>
@@ -219,11 +222,12 @@ export function FollowUpsClient({
         <div
           className="dialog-backdrop"
           onMouseDown={(event) => {
-            if (event.target === event.currentTarget) setDialog(false);
+            if (event.target === event.currentTarget) closeDialog();
           }}
         >
           <div
             className="dialog"
+            ref={dialogRef}
             role="dialog"
             aria-modal="true"
             aria-labelledby="followup-heading"
@@ -239,10 +243,7 @@ export function FollowUpsClient({
                 className="button secondary"
                 style={{ padding: 0, width: 42 }}
                 aria-label="Close"
-                onClick={() => {
-                  setDialog(false);
-                  setEditing(null);
-                }}
+                onClick={closeDialog}
               >
                 <X size={17} />
               </button>
@@ -255,6 +256,7 @@ export function FollowUpsClient({
                   name="leadId"
                   className="input"
                   required
+                  autoFocus
                   defaultValue={editing?.leadId}
                 >
                   {leads.map((lead) => (
@@ -301,7 +303,7 @@ export function FollowUpsClient({
                 />
               </div>
               {error && (
-                <p className="field-error full" role="alert">
+                <p className="field-error full" role="alert" aria-live="assertive">
                   {error}
                 </p>
               )}
@@ -309,10 +311,7 @@ export function FollowUpsClient({
                 <button
                   type="button"
                   className="button secondary"
-                  onClick={() => {
-                    setDialog(false);
-                    setEditing(null);
-                  }}
+                  onClick={closeDialog}
                 >
                   Cancel
                 </button>

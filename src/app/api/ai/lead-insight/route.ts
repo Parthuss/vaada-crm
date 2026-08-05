@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { apiError } from "@/lib/api";
 import { buildLeadContext } from "@/lib/ai/context";
 import { leadInsightFallback } from "@/lib/ai/fallbacks";
@@ -6,10 +7,12 @@ import { leadInsightSchema } from "@/lib/ai/schemas";
 import { db } from "@/lib/db";
 import { requireUserId } from "@/lib/session";
 
+const inputSchema = z.object({ leadId: z.string().min(1) });
+
 export async function POST(request: Request) {
   try {
     const ownerId = await requireUserId();
-    const { leadId } = await request.json() as { leadId?: string };
+    const { leadId } = inputSchema.parse(await request.json());
     const lead = await db.lead.findFirst({ where: { id: leadId, ownerId, archivedAt: null }, include: { followUps: { orderBy: { dueAt: "desc" }, take: 6 } } });
     if (!lead) throw new Error("NOT_FOUND");
     try {
