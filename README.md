@@ -47,7 +47,7 @@ The seed is repeatable and rebuilds data only for the configured demo user.
 | `AUTH_SECRET` | Yes | Signs session JWTs. Generate with `openssl rand -base64 32`. |
 | `NEXTAUTH_URL` | Yes | Canonical app URL, e.g. `http://localhost:3000`. |
 | `GEMINI_API_KEY` | For Gemini | Server-only key from Google AI Studio. The app remains useful without it via fallbacks. |
-| `GEMINI_MODEL` | No | Defaults to stable `gemini-2.5-flash`. |
+| `GEMINI_MODEL` | No | Defaults to stable `gemini-3.5-flash-lite`. |
 | `DEMO_EMAIL` | No | Seeded demo email; defaults to `demo@vaada.app`. |
 | `DEMO_PASSWORD` | No | Seeded demo password; change outside the assessment demo. |
 | `APP_VERSION` | No | Commit SHA/version returned by `/api/health`. |

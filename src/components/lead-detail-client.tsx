@@ -129,7 +129,7 @@ export function LeadDetailClient({ initialLead }: { initialLead: Lead }) {
       body: JSON.stringify({
         useCase,
         leadId: lead.id,
-        model: warning ? "rules-fallback-v1" : "gemini-2.5-flash",
+        model: warning ? "rules-fallback-v1" : "gemini-3.5-flash-lite",
         result,
       }),
     });
