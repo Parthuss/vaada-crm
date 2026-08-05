@@ -1,8 +1,10 @@
 # Vaada
 
+[![Production health](https://github.com/Parthuss/vaada-crm/actions/workflows/uptime.yml/badge.svg)](https://github.com/Parthuss/vaada-crm/actions/workflows/uptime.yml)
+
 **Every promise, followed through.** Vaada is an AI-assisted lead CRM for Indian SMEs. It puts overdue commitments before vanity metrics and keeps Gemini useful, structured, and firmly under salesperson control.
 
-> Deployment status: the application is production-ready locally. The public URL and monitoring screenshot are added after the owner connects a free Neon database, Gemini key, and Vercel project.
+> Deployment status: live on Vercel at [vaada-crm.vercel.app](https://vaada-crm.vercel.app), backed by Neon Postgres and monitored by a scheduled public health check.
 
 ## What reviewers can do
 
@@ -85,15 +87,15 @@ Current automated result: 22 tests pass; core domain/AI logic has 91.66% line co
 2. Add all environment variables to Vercel; set `NEXTAUTH_URL` to the final HTTPS domain.
 3. Run `npm run db:migrate` and `npm run db:seed` against the production database once.
 4. Import the repository into Vercel. `postinstall` generates Prisma Client and `npm run build` builds Next.js.
-5. Configure UptimeRobot's free HTTP monitor to request `https://YOUR_DOMAIN/health` every five minutes and alert when the response is not `200`.
+5. Enable the included GitHub Actions uptime workflow. It requests `/health` every five minutes, retries transient failures, validates both HTTP and JSON health state, and keeps a public run history.
 6. Use Vercel function logs for structured error records; AI request outcomes and durations are also queryable from `AIRequest`.
 
 ### Live submission fields
 
-- Live URL: `PENDING_OWNER_DEPLOYMENT`
+- Live URL: [https://vaada-crm.vercel.app](https://vaada-crm.vercel.app)
 - Demo login: `demo@vaada.app` / `VaadaDemo2026!`
-- Health URL: `PENDING_OWNER_DEPLOYMENT/health`
-- Uptime proof: add screenshot/link to `docs/monitoring-proof/` after the monitor is created.
+- Health URL: [https://vaada-crm.vercel.app/health](https://vaada-crm.vercel.app/health)
+- Uptime proof: [public workflow runs](https://github.com/Parthuss/vaada-crm/actions/workflows/uptime.yml) and [`docs/monitoring-proof`](./docs/monitoring-proof/README.md)
 
 ## Repository map
 

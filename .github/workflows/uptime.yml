@@ -1,0 +1,39 @@
+name: Production health
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-health
+  cancel-in-progress: true
+
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Check public health endpoint
+        shell: bash
+        run: |
+          response="$(curl --fail --silent --show-error \
+            --retry 2 --retry-all-errors --max-time 20 \
+            https://vaada-crm.vercel.app/health)"
+          node -e '
+            const payload = JSON.parse(process.argv[1]);
+            if (payload.status !== "ok" || payload.database !== "ok") {
+              console.error("Unhealthy response", payload);
+              process.exit(1);
+            }
+            console.log(JSON.stringify({
+              status: payload.status,
+              database: payload.database,
+              version: payload.version,
+              latencyMs: payload.latencyMs,
+              timestamp: payload.timestamp,
+            }));
+          ' "$response"
