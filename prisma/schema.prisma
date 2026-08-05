@@ -1,0 +1,115 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  QUALIFIED
+  PROPOSAL
+  WON
+  LOST
+}
+
+enum FollowUpKind {
+  CALL
+  WHATSAPP
+  EMAIL
+  MEETING
+  OTHER
+}
+
+enum AiUseCase {
+  LEAD_INSIGHT
+  MESSAGE_DRAFT
+  DAILY_BRIEF
+}
+
+model User {
+  id           String      @id @default(cuid())
+  name         String
+  email        String      @unique
+  passwordHash String
+  timezone     String      @default("Asia/Kolkata")
+  leads        Lead[]
+  followUps    FollowUp[]
+  aiResults    AIResult[]
+  aiRequests   AIRequest[]
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+}
+
+model Lead {
+  id          String      @id @default(cuid())
+  ownerId     String
+  owner       User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  name        String
+  company     String
+  email       String?
+  phone       String?
+  city        String?
+  industry    String?
+  source      String?
+  valuePaise  Int?
+  status      LeadStatus  @default(NEW)
+  notes       String?
+  archivedAt  DateTime?
+  followUps   FollowUp[]
+  aiResults   AIResult[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([ownerId, archivedAt])
+  @@index([ownerId, status])
+}
+
+model FollowUp {
+  id          String       @id @default(cuid())
+  ownerId     String
+  owner       User         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  leadId      String
+  lead        Lead         @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  kind        FollowUpKind
+  dueAt       DateTime
+  note        String
+  completedAt DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([ownerId, completedAt, dueAt])
+  @@index([leadId, dueAt])
+}
+
+model AIResult {
+  id            String     @id @default(cuid())
+  ownerId       String
+  owner         User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  leadId        String?
+  lead          Lead?      @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  useCase       AiUseCase
+  model         String
+  schemaVersion Int        @default(1)
+  result        Json
+  createdAt     DateTime   @default(now())
+
+  @@index([ownerId, useCase, createdAt])
+  @@index([leadId, useCase, createdAt])
+}
+
+model AIRequest {
+  id             String     @id @default(cuid())
+  ownerId        String
+  owner          User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  useCase        AiUseCase
+  resultCategory String
+  durationMs     Int?
+  retryCount     Int        @default(0)
+  createdAt      DateTime   @default(now())
+
+  @@index([ownerId, createdAt])
+}

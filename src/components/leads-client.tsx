@@ -1,0 +1,309 @@
+"use client";
+
+import Link from "next/link";
+import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Plus, Search, X } from "lucide-react";
+import { formatDateTime, formatInr } from "@/lib/format";
+
+type Lead = {
+  id: string;
+  name: string;
+  company: string;
+  email: string | null;
+  phone: string | null;
+  city: string | null;
+  industry: string | null;
+  source: string | null;
+  valuePaise: number | null;
+  status: string;
+  notes: string | null;
+  updatedAt: string;
+  followUps: Array<{ dueAt: string }>;
+};
+const statuses = ["NEW", "CONTACTED", "QUALIFIED", "PROPOSAL", "WON", "LOST"];
+
+export function LeadsClient({
+  initialLeads,
+  openNew,
+}: {
+  initialLeads: Lead[];
+  openNew: boolean;
+}) {
+  const router = useRouter();
+  const [leads, setLeads] = useState(initialLeads);
+  const [dialog, setDialog] = useState(openNew);
+  const [query, setQuery] = useState("");
+  const [status, setStatus] = useState("ALL");
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState("");
+  const filtered = useMemo(
+    () =>
+      leads.filter(
+        (lead) =>
+          (status === "ALL" || lead.status === status) &&
+      `${lead.name} ${lead.company} ${lead.source ?? ""}`
+            .toLowerCase()
+            .includes(query.toLowerCase()),
+      ),
+    [leads, query, status],
+  );
+
+  async function createLead(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setPending(true);
+    setError("");
+    const form = new FormData(event.currentTarget);
+    const body = Object.fromEntries(form);
+    body.valuePaise = String(
+      Math.round(Number(form.get("valueRupees") || 0) * 100),
+    );
+    delete body.valueRupees;
+    const response = await fetch("/api/leads", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const payload = await response.json();
+    if (!response.ok) {
+      setError(payload.error?.message ?? "Could not add this lead.");
+      setPending(false);
+      return;
+    }
+    setLeads((current) => [
+      { ...payload.data, updatedAt: payload.data.updatedAt, followUps: [] },
+      ...current,
+    ]);
+    setDialog(false);
+    setPending(false);
+    router.replace("/leads");
+    router.refresh();
+  }
+  return (
+    <div className="page">
+      <header className="page-head">
+        <div>
+          <span className="eyebrow">People and opportunities</span>
+          <h1>Leads</h1>
+          <p className="lede">
+            Keep context close and every next step explicit.
+          </p>
+        </div>
+        <button className="button" onClick={() => setDialog(true)}>
+          <Plus size={16} />
+          Add lead
+        </button>
+      </header>
+      <div className="card">
+        <div className="card-head" style={{ gap: 12, flexWrap: "wrap" }}>
+          <label style={{ position: "relative", flex: "1 1 260px" }}>
+            <span className="sr-only">Search leads</span>
+            <Search
+              size={16}
+              style={{
+                position: "absolute",
+                left: 13,
+                top: 14,
+                color: "var(--muted)",
+              }}
+            />
+            <input
+              className="input"
+              style={{ paddingLeft: 39 }}
+              placeholder="Search name, company, or source"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+            />
+          </label>
+          <select
+            className="input"
+            style={{ width: 170 }}
+            aria-label="Filter by status"
+            value={status}
+            onChange={(event) => setStatus(event.target.value)}
+          >
+            <option value="ALL">All statuses</option>
+            {statuses.map((item) => (
+              <option key={item}>{item}</option>
+            ))}
+          </select>
+        </div>
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Lead</th>
+                <th>Status</th>
+                <th>Value</th>
+                <th>Next promise</th>
+                <th>Updated</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((lead) => (
+                <tr key={lead.id}>
+                  <td>
+                    <Link href={`/leads/${lead.id}`}>
+                      <span className="lead-name">{lead.company}</span>
+                      <div className="subtle">
+                        {lead.name} · {lead.city || "City not set"}
+                      </div>
+                    </Link>
+                  </td>
+                  <td>
+                    <span className="badge">{lead.status}</span>
+                  </td>
+                  <td>{formatInr(lead.valuePaise)}</td>
+                  <td>
+                    {lead.followUps[0] ? (
+                      formatDateTime(lead.followUps[0].dueAt)
+                    ) : (
+                      <span className="subtle">Not scheduled</span>
+                    )}
+                  </td>
+                  <td className="subtle">{formatDateTime(lead.updatedAt)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {!filtered.length && (
+            <div className="empty">
+              <strong>No leads found.</strong>Try a different filter or add your
+              first lead.
+            </div>
+          )}
+        </div>
+      </div>
+      {dialog && (
+        <div
+          className="dialog-backdrop"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setDialog(false);
+          }}
+        >
+          <div
+            className="dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="new-lead-heading"
+          >
+            <header className="dialog-head">
+              <div>
+                <span className="eyebrow">New opportunity</span>
+                <h2 id="new-lead-heading">Add a lead</h2>
+              </div>
+              <button
+                className="button secondary"
+                style={{ padding: 0, width: 42 }}
+                aria-label="Close"
+                onClick={() => setDialog(false)}
+              >
+                <X size={17} />
+              </button>
+            </header>
+            <form onSubmit={createLead} className="form-grid">
+              <div className="field">
+                <label htmlFor="name">Contact name *</label>
+                <input
+                  className="input"
+                  id="name"
+                  name="name"
+                  required
+                  maxLength={120}
+                  autoFocus
+                />
+              </div>
+              <div className="field">
+                <label htmlFor="company">Company *</label>
+                <input
+                  className="input"
+                  id="company"
+                  name="company"
+                  required
+                  maxLength={120}
+                />
+              </div>
+              <div className="field">
+                <label htmlFor="email">Email</label>
+                <input className="input" id="email" name="email" type="email" />
+              </div>
+              <div className="field">
+                <label htmlFor="phone">Phone</label>
+                <input
+                  className="input"
+                  id="phone"
+                  name="phone"
+                  inputMode="tel"
+                />
+              </div>
+              <div className="field">
+                <label htmlFor="city">City</label>
+                <input className="input" id="city" name="city" />
+              </div>
+              <div className="field">
+                <label htmlFor="industry">Industry</label>
+                <input className="input" id="industry" name="industry" />
+              </div>
+              <div className="field">
+                <label htmlFor="valueRupees">Potential value (₹)</label>
+                <input
+                  className="input"
+                  id="valueRupees"
+                  name="valueRupees"
+                  type="number"
+                  min="0"
+                  step="1"
+                />
+              </div>
+              <div className="field">
+                <label htmlFor="status">Status</label>
+                <select className="input" id="status" name="status">
+                  {statuses.map((item) => (
+                    <option key={item}>{item}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="field full">
+                <label htmlFor="source">Source</label>
+                <input
+                  className="input"
+                  id="source"
+                  name="source"
+                  placeholder="Referral, website, event…"
+                />
+              </div>
+              <div className="field full">
+                <label htmlFor="notes">Notes</label>
+                <textarea
+                  className="input"
+                  id="notes"
+                  name="notes"
+                  maxLength={2000}
+                  placeholder="Only add context the team genuinely needs."
+                />
+              </div>
+              {error && (
+                <p className="field-error full" role="alert">
+                  {error}
+                </p>
+              )}
+              <div className="dialog-actions full">
+                <button
+                  type="button"
+                  className="button secondary"
+                  onClick={() => setDialog(false)}
+                >
+                  Cancel
+                </button>
+                <button className="button" disabled={pending}>
+                  {pending ? "Adding…" : "Add lead"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
