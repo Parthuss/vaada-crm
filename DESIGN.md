@@ -80,6 +80,8 @@ Only load script fonts for enabled locales to avoid unnecessary font cost.
 
 Avoid display typography in labels, buttons, and data. Tracked uppercase is reserved for short, non-essential orientation labels; it never carries primary instructions or field meaning.
 
+This scale governs the authenticated operational app. The signed-out login screen is a marketing/brand surface, not an operational one, and is deliberately exempt — its headline runs a large fluid display size (`clamp(44px, 6.4vw, 82px)`) to make the first impression, not to stay legible in a dense worklist.
+
 ## Layout
 
 - Desktop uses a compact fixed sidebar and a flexible primary workspace.

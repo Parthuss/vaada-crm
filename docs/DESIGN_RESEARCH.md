@@ -32,9 +32,9 @@ How can a small-business CRM feel immediately familiar and operationally useful 
 ## Direction derived from research
 
 - Product name: **Vaada** — the product helps a team keep every follow-up promise.
-- Visual strategy: restrained, light-first, high-contrast neutral workspace with one distinctive ink-blue primary and a small marigold urgency role reserved for due work.
+- Visual strategy: restrained, light-first, high-contrast neutral workspace with one distinctive deep-evergreen primary (chosen over the ink-blue direction explored early on, to avoid reading as default SaaS blue) and a small marigold urgency role reserved for due work.
 - Topology: compact sidebar; attention-led dashboard; lead table and optional pipeline view; persistent contextual detail rather than modal-heavy CRUD.
-- Signature motif: a small “promise loop” mark and a continuous follow-up timeline connecting lead activity to the next commitment.
+- Signature motif: a compact brand monogram and a continuous follow-up timeline connecting lead activity to the next commitment.
 - AI treatment: an embedded assistant panel with visible input context, structured reasoning, editable output, and explicit fallback states—not a floating chatbot.
 
 ## Physical scene
