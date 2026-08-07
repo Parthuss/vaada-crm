@@ -59,8 +59,9 @@ time, td { font-variant-numeric: tabular-nums; }
 .dashboard-grid .attention-row { grid-template-columns: 10px 1fr auto; }
 .card-meta { margin: 4px 0 0; font-size: .8125rem; line-height: 1.125rem; color: var(--muted); font-variant-numeric: tabular-nums; }
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
-.card-head { display: flex; align-items: center; justify-content: space-between; padding: 22px 24px 14px; }
+.card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 22px 24px 14px; }
 .card-head h2 { margin: 0; }
+.card-head > div { min-width: 0; }
 .card-body { padding: 0 24px 24px; }
 .attention-list { display: grid; }
 .attention-row { display: grid; grid-template-columns: 10px minmax(130px, 1fr) minmax(130px, .9fr) auto; gap: 14px; align-items: center; min-height: 68px; border-top: 1px solid var(--line); }
@@ -78,7 +79,7 @@ time, td { font-variant-numeric: tabular-nums; }
 .button:hover { background: var(--primary-hover); }.button:active { transform: translateY(1px); }.button:disabled { cursor: wait; opacity: .62; }
 .button.secondary { background: var(--surface); border: 1px solid var(--line); color: var(--ink); }.button.secondary:hover { background: var(--surface-2); }
 .button.danger { color: var(--coral); background: var(--coral-soft); }
-.text-link { color: var(--primary); font-size: 13px; font-weight: 680; }
+.text-link { color: var(--primary); font-size: 13px; font-weight: 680; white-space: nowrap; flex: none; }
 .table-wrap { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; } th { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .07em; text-align: left; padding: 13px 18px; border-bottom: 1px solid var(--line); } td { padding: 16px 18px; border-bottom: 1px solid var(--line); font-size: 13px; } tr:last-child td { border-bottom: 0; } tbody tr:hover { background: var(--surface-2); }
 .lead-name { font-weight: 680; }.subtle { color: var(--muted); font-size: 12px; margin-top: 4px; }
