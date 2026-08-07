@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Search, X } from "lucide-react";
 import { formatDateTime, formatInr, formatStatus } from "@/lib/format";
+import { classifyFollowUp } from "@/lib/domain/follow-ups";
 import { useDialogA11y } from "@/components/use-dialog-a11y";
 
 type Lead = {
@@ -168,7 +169,15 @@ export function LeadsClient({
                   <td role="cell" data-label="Value">{formatInr(lead.valuePaise)}</td>
                   <td role="cell" data-label="Next promise">
                     {lead.followUps[0] ? (
-                      formatDateTime(lead.followUps[0].dueAt)
+                      (() => {
+                        const bucket = classifyFollowUp(new Date(lead.followUps[0].dueAt));
+                        return (
+                          <time className={`badge ${bucket.toLowerCase()}`}>
+                            {bucket === "OVERDUE" ? "Overdue · " : bucket === "TODAY" ? "Today · " : ""}
+                            {formatDateTime(lead.followUps[0].dueAt)}
+                          </time>
+                        );
+                      })()
                     ) : (
                       <span className="subtle">Not scheduled</span>
                     )}

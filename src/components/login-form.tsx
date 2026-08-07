@@ -22,6 +22,6 @@ export function LoginForm() {
     <div className="field"><label htmlFor="password">Password</label><input className="input" id="password" name="password" type="password" autoComplete="current-password" required value={password} onChange={(event) => setPassword(event.target.value)} /></div>
     {error && <p className="field-error" role="alert" style={{ marginTop: 12 }}>{error}</p>}
     <button className="button" style={{ width: "100%", marginTop: 18 }} disabled={pending}>{pending ? "Signing in…" : "Sign in"}</button>
-    <div className="demo-note"><strong style={{ color: "var(--ink)" }}>Demo access is pre-filled.</strong><br />Use the credentials shown above after running the seed command.</div>
+    <div className="demo-note"><strong style={{ color: "var(--ink)" }}>Demo access is pre-filled.</strong><br />Just sign in — no account needed.</div>
   </form>;
 }

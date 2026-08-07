@@ -19,6 +19,7 @@ type Item = {
 };
 type Lead = { id: string; name: string; company: string };
 const kinds = ["CALL", "WHATSAPP", "EMAIL", "MEETING", "OTHER"];
+const formatKind = (kind: string) => (kind === "WHATSAPP" ? "WhatsApp" : kind.charAt(0) + kind.slice(1).toLowerCase());
 const dateInputValue = (value: string) =>
   formatInTimeZone(new Date(value), "Asia/Kolkata", "yyyy-MM-dd'T'HH:mm");
 const bucketFor = (value: string) => {
@@ -137,7 +138,7 @@ export function FollowUpsClient({
           <h2>Open</h2>
           <span className="badge">{open.length}</span>
         </header>
-        <div className="card-body attention-list">
+        <div className="card-body attention-list follow-ups-list">
           {open.map((item) => (
             <div className="attention-row" key={item.id}>
               <span className={`dot ${item.bucket.toLowerCase()}`} aria-hidden="true" />
@@ -148,10 +149,11 @@ export function FollowUpsClient({
                 <div className="subtle">
                   {item.kind.toLowerCase()} · {item.lead.name}
                 </div>
+                <div className="subtle">{item.note}</div>
               </div>
-              <span className="hide-mobile">{item.note}</span>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <time className={`badge ${item.bucket.toLowerCase()}`}>
+                <time className={`badge ${item.bucket.toLowerCase()} hide-mobile`}>
+                  {item.bucket === "OVERDUE" ? "Overdue · " : item.bucket === "TODAY" ? "Today · " : ""}
                   {formatDateTime(item.dueAt)}
                 </time>
                 <button
@@ -199,19 +201,15 @@ export function FollowUpsClient({
           <header className="card-head">
             <h2>Recently completed</h2>
           </header>
-          <div className="card-body attention-list">
+          <div className="card-body attention-list follow-ups-list">
             {done.slice(0, 8).map((item) => (
               <div className="attention-row" key={item.id}>
-                <span
-                  className="dot"
-                  style={{ background: "var(--primary)" }}
-                  aria-hidden="true"
-                />
+                <span className="dot done" aria-hidden="true" />
                 <div>
                   <strong>{item.lead.company}</strong>
                   <div className="subtle">{item.lead.name}</div>
+                  <div className="subtle">{item.note}</div>
                 </div>
-                <span className="hide-mobile">{item.note}</span>
                 <span className="badge">Completed</span>
               </div>
             ))}
@@ -275,7 +273,7 @@ export function FollowUpsClient({
                   defaultValue={editing?.kind}
                 >
                   {kinds.map((kind) => (
-                    <option key={kind}>{kind}</option>
+                    <option key={kind} value={kind}>{formatKind(kind)}</option>
                   ))}
                 </select>
               </div>

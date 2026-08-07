@@ -12,6 +12,7 @@ import {
   WandSparkles,
 } from "lucide-react";
 import { formatDateTime, formatInr, formatStatus } from "@/lib/format";
+import { classifyFollowUp } from "@/lib/domain/follow-ups";
 
 type FollowUp = {
   id: string;
@@ -57,17 +58,23 @@ export function LeadDetailClient({ initialLead }: { initialLead: Lead }) {
   const router = useRouter();
   const [lead, setLead] = useState(initialLead);
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState("");
+  const [saveMessage, setSaveMessage] = useState<{ text: string; error: boolean } | null>(null);
+  const [archiving, setArchiving] = useState(false);
+  const [archiveError, setArchiveError] = useState("");
   const [aiLoading, setAiLoading] = useState<"insight" | "draft" | "">("");
   const [insight, setInsight] = useState<Insight | null>(null);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [insightOrigin, setInsightOrigin] = useState<AiOrigin | null>(null);
   const [draftOrigin, setDraftOrigin] = useState<AiOrigin | null>(null);
+  const [insightSaving, setInsightSaving] = useState(false);
+  const [insightSaveMessage, setInsightSaveMessage] = useState<{ text: string; error: boolean } | null>(null);
+  const [draftSaving, setDraftSaving] = useState(false);
+  const [draftSaveMessage, setDraftSaveMessage] = useState<{ text: string; error: boolean } | null>(null);
   const [warning, setWarning] = useState("");
   async function saveLead(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSaving(true);
-    setMessage("");
+    setSaveMessage(null);
     const data: Record<string, FormDataEntryValue | null> = Object.fromEntries(new FormData(event.currentTarget));
     const rupees = String(data.valueRupees ?? "").trim();
     data.valuePaise = rupees ? String(Math.round(Number(rupees) * 100)) : null;
@@ -81,14 +88,14 @@ export function LeadDetailClient({ initialLead }: { initialLead: Lead }) {
     });
     const payload = await response.json().catch(() => null);
     if (!response.ok)
-      setMessage(payload?.error?.message ?? "Could not save changes.");
+      setSaveMessage({ text: payload?.error?.message ?? "Could not save changes.", error: true });
     else {
       setLead((current) => ({ ...current, ...payload.data }));
-      setMessage("Changes saved.");
+      setSaveMessage({ text: "Changes saved.", error: false });
       router.refresh();
     }
     } catch {
-      setMessage("Connection lost. Check your network and try again.");
+      setSaveMessage({ text: "Connection lost. Check your network and try again.", error: true });
     } finally {
       setSaving(false);
     }
@@ -141,6 +148,10 @@ export function LeadDetailClient({ initialLead }: { initialLead: Lead }) {
     result: Insight | Draft,
     origin: AiOrigin | null,
   ) {
+    const setSaving = useCase === "LEAD_INSIGHT" ? setInsightSaving : setDraftSaving;
+    const setSaveResult = useCase === "LEAD_INSIGHT" ? setInsightSaveMessage : setDraftSaveMessage;
+    setSaving(true);
+    setSaveResult(null);
     try {
     const response = await fetch("/api/ai/results", {
       method: "POST",
@@ -152,12 +163,16 @@ export function LeadDetailClient({ initialLead }: { initialLead: Lead }) {
         result,
       }),
     });
-    setMessage(
+    setSaveResult(
       response.ok
-        ? "AI result saved to this lead."
-        : "Could not save the AI result.",
+        ? { text: "Saved to this lead.", error: false }
+        : { text: "Could not save the AI result.", error: true },
     );
-    } catch { setMessage("Connection lost. Check your network and try again."); }
+    } catch {
+      setSaveResult({ text: "Connection lost. Check your network and try again.", error: true });
+    } finally {
+      setSaving(false);
+    }
   }
   async function archiveLead() {
     if (
@@ -166,13 +181,21 @@ export function LeadDetailClient({ initialLead }: { initialLead: Lead }) {
       )
     )
       return;
+    setArchiving(true);
+    setArchiveError("");
     try {
     const response = await fetch(`/api/leads/${lead.id}`, { method: "DELETE" });
     if (response.ok) {
       router.push("/leads");
       router.refresh();
-    } else setMessage("Could not archive this lead.");
-    } catch { setMessage("Connection lost. Check your network and try again."); }
+    } else {
+      setArchiveError("Could not archive this lead.");
+      setArchiving(false);
+    }
+    } catch {
+      setArchiveError("Connection lost. Check your network and try again.");
+      setArchiving(false);
+    }
   }
   return (
     <div className="page">
@@ -185,7 +208,7 @@ export function LeadDetailClient({ initialLead }: { initialLead: Lead }) {
           <h1>{lead.company}</h1>
           <p className="lede">
             {lead.name} · {lead.city || "Location not set"} ·{" "}
-            {formatInr(lead.valuePaise)}
+            <span style={{ fontVariantNumeric: "tabular-nums" }}>{formatInr(lead.valuePaise)}</span>
           </p>
         </div>
         <span className="badge">{formatStatus(lead.status)}</span>
@@ -199,14 +222,20 @@ export function LeadDetailClient({ initialLead }: { initialLead: Lead }) {
                 type="button"
                 className="button danger"
                 onClick={archiveLead}
+                disabled={archiving}
               >
                 <Archive size={14} />
-                Archive
+                {archiving ? "Archiving…" : "Archive"}
               </button>
             </header>
+            {archiveError && (
+              <p className="field-error" role="alert" aria-live="assertive" style={{ padding: "0 24px", margin: "0 0 14px" }}>
+                {archiveError}
+              </p>
+            )}
             <form className="card-body form-grid" onSubmit={saveLead}>
               <div className="field">
-                <label htmlFor="name">Contact name</label>
+                <label htmlFor="name">Contact name *</label>
                 <input
                   className="input"
                   id="name"
@@ -216,7 +245,7 @@ export function LeadDetailClient({ initialLead }: { initialLead: Lead }) {
                 />
               </div>
               <div className="field">
-                <label htmlFor="company">Company</label>
+                <label htmlFor="company">Company *</label>
                 <input
                   className="input"
                   id="company"
@@ -308,19 +337,15 @@ export function LeadDetailClient({ initialLead }: { initialLead: Lead }) {
                   maxLength={2000}
                 />
               </div>
-              {message && (
-                <p
-                  className={
-                    message.includes("saved")
-                      ? "notice full"
-                      : "field-error full"
-                  }
-                  role="status"
-                  aria-live="polite"
-                >
-                  {message}
+              {saveMessage && (saveMessage.error ? (
+                <p className="field-error full" role="alert" aria-live="assertive">
+                  {saveMessage.text}
                 </p>
-              )}
+              ) : (
+                <p className="notice success full" role="status" aria-live="polite">
+                  {saveMessage.text}
+                </p>
+              ))}
               <div className="dialog-actions full">
                 <button className="button" disabled={saving}>
                   <Save size={15} />
@@ -337,28 +362,25 @@ export function LeadDetailClient({ initialLead }: { initialLead: Lead }) {
               </Link>
             </header>
             <div className="card-body attention-list">
-              {lead.followUps.map((item) => (
-                <div className="attention-row" key={item.id}>
-                  <span
-                    className="dot"
-                    style={{
-                      background: item.completedAt
-                        ? "var(--primary)"
-                        : "var(--amber)",
-                    }}
-                  />
-                  <div>
-                    <strong>{item.note}</strong>
-                    <div className="subtle">{item.kind.toLowerCase()}</div>
+              {lead.followUps.map((item) => {
+                const bucket = item.completedAt ? null : classifyFollowUp(new Date(item.dueAt));
+                const bucketClass = bucket && bucket !== "UPCOMING" ? ` ${bucket.toLowerCase()}` : "";
+                return (
+                  <div className="attention-row" key={item.id}>
+                    <span className={`dot${item.completedAt ? " done" : bucketClass}`} aria-hidden />
+                    <div>
+                      <strong>{item.note}</strong>
+                      <div className="subtle">{item.kind.toLowerCase()}</div>
+                    </div>
+                    <span className="hide-mobile">
+                      {formatDateTime(item.dueAt)}
+                    </span>
+                    <span className={`badge${item.completedAt ? "" : bucketClass}`}>
+                      {item.completedAt ? "Completed" : bucket === "OVERDUE" ? "Overdue" : bucket === "TODAY" ? "Today" : "Open"}
+                    </span>
                   </div>
-                  <span className="hide-mobile">
-                    {formatDateTime(item.dueAt)}
-                  </span>
-                  <span className="badge">
-                    {item.completedAt ? "Completed" : "Open"}
-                  </span>
-                </div>
-              ))}
+                );
+              })}
               {!lead.followUps.length && (
                 <div className="empty">
                   <strong>No follow-ups yet.</strong>Give this conversation a
@@ -421,10 +443,16 @@ export function LeadDetailClient({ initialLead }: { initialLead: Lead }) {
               <button
                 className="button secondary"
                 onClick={() => saveAi("LEAD_INSIGHT", insight, insightOrigin)}
+                disabled={insightSaving}
               >
                 <Check size={14} />
-                Save insight
+                {insightSaving ? "Saving…" : "Save insight"}
               </button>
+              {insightSaveMessage && (insightSaveMessage.error ? (
+                <p className="field-error" role="alert" aria-live="assertive">{insightSaveMessage.text}</p>
+              ) : (
+                <p className="notice success" role="status" aria-live="polite">{insightSaveMessage.text}</p>
+              ))}
             </div>
           )}
           {draft && (
@@ -443,10 +471,16 @@ export function LeadDetailClient({ initialLead }: { initialLead: Lead }) {
               <button
                 className="button secondary"
                 onClick={() => saveAi("MESSAGE_DRAFT", draft, draftOrigin)}
+                disabled={draftSaving}
               >
                 <Check size={14} />
-                Save draft
+                {draftSaving ? "Saving…" : "Save draft"}
               </button>
+              {draftSaveMessage && (draftSaveMessage.error ? (
+                <p className="field-error" role="alert" aria-live="assertive">{draftSaveMessage.text}</p>
+              ) : (
+                <p className="notice success" role="status" aria-live="polite">{draftSaveMessage.text}</p>
+              ))}
             </div>
           )}
         </aside>
