@@ -16,6 +16,7 @@ Copy the fields below into whatever form or email QRYX asks for. Everything here
 - **Engineering trade-offs:** [`DECISIONS.md`](./DECISIONS.md)
 - **Formal spec (FR/NFR/AC/EC) the build is audited against:** [`specs/vaada-crm.md`](./specs/vaada-crm.md)
 - **Demo script:** [`docs/DEMO_SCRIPT.md`](./docs/DEMO_SCRIPT.md)
+- **Demo video:** `vaada-demo.mp4` — 7m24s, captioned, no audio. Deliberately kept out of the repo (9.8MB binary, gitignored), so upload it to the form directly or share a link. `vaada-demo.srt` holds the same captions as a separate track if that's preferred.
 
 ## What a reviewer can do without any setup
 
