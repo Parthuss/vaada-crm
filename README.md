@@ -79,7 +79,7 @@ npm run test:coverage
 npm run build
 ```
 
-Current automated result: 22 tests pass; core domain/AI logic has 91.66% line coverage and 90.19% statement coverage. The live Gemini transport is excluded from unit coverage and is verified as an environment-backed integration.
+Current automated result: 32 tests pass; core domain/AI logic (`src/lib/domain`, `src/lib/ai`) has 97.36% line coverage and 95.38% branch coverage, clearing the spec's 80% branch bar. The live Gemini transport (`gemini.ts`) is excluded from unit coverage and is verified as an environment-backed integration. Routes, pages, and components have no unit tests — see [DECISIONS.md](./DECISIONS.md#testing-scope) for the honest coverage-scope call and the real global-line-coverage number.
 
 ## Deploy on free tiers
 
@@ -103,7 +103,7 @@ Current automated result: 22 tests pass; core domain/AI logic has 91.66% line co
 - `src/app/api` — owner-scoped REST and AI endpoints.
 - `src/lib/ai` — context minimization, schemas, Gemini adapter, fallbacks, resilience.
 - `prisma` — schema, deployable migration, and realistic repeatable seed.
-- `specs/vaada-crm.md` — validated 100/100 implementation specification.
+- `specs/vaada-crm.md` — formal FR/NFR/AC/EC specification the implementation is audited against.
 - `PRODUCT.md`, `DESIGN.md`, `docs/DESIGN_RESEARCH.md` — product and evidence-backed design rationale.
 
 ## Security and production improvements
