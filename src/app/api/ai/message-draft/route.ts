@@ -2,7 +2,7 @@ import { z } from "zod";
 import { apiError } from "@/lib/api";
 import { buildMessageContext } from "@/lib/ai/context";
 import { messageFallback } from "@/lib/ai/fallbacks";
-import { generateStructured } from "@/lib/ai/gemini";
+import { AiGenerationError, generateStructured } from "@/lib/ai/gemini";
 import { messageDraftSchema } from "@/lib/ai/schemas";
 import { db } from "@/lib/db";
 import { requireUserId } from "@/lib/session";
@@ -20,7 +20,10 @@ export async function POST(request: Request) {
       return Response.json({ ...result, source: "gemini" });
     } catch (error) {
       if (error instanceof Error && error.message === "AI_RATE_LIMIT") return apiError(error);
-      return Response.json({ data: messageFallback(lead, input.channel), source: "fallback", warning: "Gemini is unavailable. Showing an editable template." });
+      const warning = error instanceof AiGenerationError && error.message === "GEMINI_NOT_CONFIGURED"
+        ? "AI isn't configured for this deployment. Showing an editable template."
+        : "Gemini is unavailable. Showing an editable template.";
+      return Response.json({ data: messageFallback(lead, input.channel), source: "fallback", warning });
     }
   } catch (error) { return apiError(error); }
 }

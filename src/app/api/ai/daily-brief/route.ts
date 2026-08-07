@@ -1,7 +1,7 @@
 import { apiError } from "@/lib/api";
 import { buildLeadContext } from "@/lib/ai/context";
 import { dailyBriefFallback } from "@/lib/ai/fallbacks";
-import { generateStructured } from "@/lib/ai/gemini";
+import { AiGenerationError, generateStructured } from "@/lib/ai/gemini";
 import { dailyBriefSchema } from "@/lib/ai/schemas";
 import { db } from "@/lib/db";
 import { requireUserId } from "@/lib/session";
@@ -19,7 +19,10 @@ export async function POST() {
       return Response.json({ ...result, source: "gemini" });
     } catch (error) {
       if (error instanceof Error && error.message === "AI_RATE_LIMIT") return apiError(error);
-      return Response.json({ data: dailyBriefFallback(leads), source: "fallback", warning: "Gemini is unavailable. Showing a rules-based attention list." });
+      const warning = error instanceof AiGenerationError && error.message === "GEMINI_NOT_CONFIGURED"
+        ? "AI isn't configured for this deployment. Showing a rules-based attention list."
+        : "Gemini is unavailable. Showing a rules-based attention list.";
+      return Response.json({ data: dailyBriefFallback(leads), source: "fallback", warning });
     }
   } catch (error) { return apiError(error); }
 }

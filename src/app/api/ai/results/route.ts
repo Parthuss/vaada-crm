@@ -4,10 +4,15 @@ import { dailyBriefSchema, leadInsightSchema, messageDraftSchema } from "@/lib/a
 import { db } from "@/lib/db";
 import { requireUserId } from "@/lib/session";
 
+// schemaVersion defaults to the only version this API currently understands (see AIResult.schemaVersion in
+// prisma/schema.prisma) so existing clients don't need to send it, but a future incompatible client sending
+// anything other than 1 is rejected rather than silently persisted as if it were validated against this shape.
+const schemaVersion = z.literal(1).default(1);
+
 const inputSchema = z.discriminatedUnion("useCase", [
-  z.object({ useCase: z.literal("LEAD_INSIGHT"), leadId: z.string(), model: z.string().max(80), result: leadInsightSchema }),
-  z.object({ useCase: z.literal("MESSAGE_DRAFT"), leadId: z.string(), model: z.string().max(80), result: messageDraftSchema }),
-  z.object({ useCase: z.literal("DAILY_BRIEF"), leadId: z.null().optional(), model: z.string().max(80), result: dailyBriefSchema }),
+  z.object({ useCase: z.literal("LEAD_INSIGHT"), leadId: z.string(), model: z.string().max(80), schemaVersion, result: leadInsightSchema }),
+  z.object({ useCase: z.literal("MESSAGE_DRAFT"), leadId: z.string(), model: z.string().max(80), schemaVersion, result: messageDraftSchema }),
+  z.object({ useCase: z.literal("DAILY_BRIEF"), leadId: z.null().optional(), model: z.string().max(80), schemaVersion, result: dailyBriefSchema }),
 ]);
 
 export async function POST(request: Request) {

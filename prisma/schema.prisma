@@ -106,6 +106,7 @@ model AIRequest {
   ownerId        String
   owner          User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   useCase        AiUseCase
+  model          String?
   resultCategory String
   durationMs     Int?
   retryCount     Int        @default(0)

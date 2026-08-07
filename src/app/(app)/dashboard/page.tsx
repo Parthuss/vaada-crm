@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Plus, ArrowRight } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { db } from "@/lib/db";
-import { classifyFollowUp } from "@/lib/domain/follow-ups";
+import { classifyFollowUp, sortAttentionItems } from "@/lib/domain/follow-ups";
 import { formatDateTime, formatInr, formatStatus } from "@/lib/format";
 import { requireUserId } from "@/lib/session";
 
@@ -15,7 +15,7 @@ export default async function DashboardPage() {
     db.followUp.findMany({ where: { ownerId, completedAt: null, lead: { archivedAt: null } }, include: { lead: { select: { id: true, name: true, company: true } } }, orderBy: { dueAt: "asc" } }),
     db.followUp.findMany({ where: { ownerId, completedAt: { not: null }, lead: { archivedAt: null } }, include: { lead: { select: { id: true, company: true } } }, orderBy: { completedAt: "desc" }, take: 5 }),
   ]);
-  const attention = followUps.map((item) => ({ ...item, bucket: classifyFollowUp(item.dueAt) }));
+  const attention = sortAttentionItems(followUps).map((item) => ({ ...item, bucket: classifyFollowUp(item.dueAt) }));
   const activeLeads = leads.filter((lead) => !["WON", "LOST"].includes(lead.status));
   const pipeline = activeLeads.reduce((sum, lead) => sum + (lead.valuePaise ?? 0), 0);
   const stages = ["NEW", "CONTACTED", "QUALIFIED", "PROPOSAL", "WON", "LOST"];

@@ -11,6 +11,19 @@ describe("AI resilience", () => {
     expect(() => parseValidatedJson('{"opportunity":"only one field"}', leadInsightSchema)).toThrow();
   });
 
+  it("EC-6: rejects text that isn't JSON at all", () => {
+    expect(() => parseValidatedJson("not json", leadInsightSchema)).toThrow();
+  });
+
+  it("EC-7: classifies a safety-blocked response distinctly from other failures", () => {
+    expect(classifyAiError(new Error("Response blocked for safety reasons"))).toBe("BLOCKED");
+  });
+
+  it("EC-7: falls back to UNAVAILABLE for an unrecognised failure shape", () => {
+    expect(classifyAiError(new Error("network hiccup"))).toBe("UNAVAILABLE");
+    expect(classifyAiError("not even an Error instance")).toBe("UNAVAILABLE");
+  });
+
   it("AC-15: limits the sixth request in a rolling minute", () => {
     expect(isAiRateLimited(4, 5)).toBe(false);
     expect(isAiRateLimited(5, 5)).toBe(true);

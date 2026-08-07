@@ -897,6 +897,7 @@ export const AIRequestScalarFieldEnum = {
   id: 'id',
   ownerId: 'ownerId',
   useCase: 'useCase',
+  model: 'model',
   resultCategory: 'resultCategory',
   durationMs: 'durationMs',
   retryCount: 'retryCount',

@@ -43,6 +43,16 @@ Research across Mobbin patterns, Dribbble CRM explorations, and Awwwards' Aqtos 
 
 The implementation targets WCAG 2.2 AA with persistent labels, keyboard-visible focus, semantic tables, labelled icon buttons, status text, responsive reflow, and reduced-motion support.
 
+## Testing scope
+
+Coverage thresholds (90% lines/statements, 100% functions, 80% branches — meeting `specs/vaada-crm.md`'s NFR-9 branch bar) are enforced only on `src/lib/domain/**` and `src/lib/ai/**`: the pure business-rule and AI-contract code where unit tests give the highest signal per line written. `gemini.ts` (network I/O against the live Gemini SDK) and `schemas.ts` (declarative Zod shapes with no branching logic) are excluded from the same folder for the same reason.
+
+NFR-9 also states a global line coverage floor of 60%. Measured against the whole `src/` tree, actual global line coverage is **6.34%** (56/883 statements) — routes, pages, and components have no unit tests at all and are exercised only by manual QA against a real deployment. That NFR-9 number is a self-imposed target: `specs/vaada-crm.md` was authored by the candidate as a formalization of the QRYX brief, not a verbatim copy of it, and the original brief text isn't preserved anywhere in this repo to check its exact wording. Closing a 54-point gap would mean standing up React Testing Library and writing tests across ~15 route files and ~8 components — a multi-day investment for a take-home, and one that trades off directly against the submission package, demo script, and interview prep this session, which the candidate judged higher-value. Documenting the real number rather than a threshold that would either fail CI or be quietly scoped to look compliant.
+
+### NFR-6 (performance/Lighthouse)
+
+Ran `npx lighthouse` against the live production `/login` page (headless Chrome, default mobile emulation): **performance 99, accessibility 100, best practices 100, SEO 100**. This clears NFR-6's LCP/INP/CLS targets on the one route Lighthouse can audit without an authenticated session — `lighthouse-cli` doesn't carry cookies through a credentials-based login flow, so `/dashboard`, `/leads`, and `/pipeline` weren't measured directly. Those routes share the same Next.js build, font loading, and CSS budget as `/login`, so the numbers should be directionally similar, but that's an inference, not a measurement — worth being explicit about in an interview.
+
 ## Higher traffic and multi-tenancy
 
 1. Add `Tenant`, `Membership`, and role/permission models; move every uniqueness rule and compound index under `tenantId`.

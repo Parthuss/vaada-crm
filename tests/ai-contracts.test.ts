@@ -19,6 +19,17 @@ describe("AI data contracts", () => {
     expect(context.notes.length).toBeLessThanOrEqual(600);
   });
 
+  it("AC-13: bands an unset value as UNKNOWN and omits follow-ups when absent", () => {
+    const bare = buildLeadContext({ id: "lead_2", name: "Anon", company: "NoValue Co", status: "NEW" });
+    expect(bare.valueBand).toBe("UNKNOWN");
+    expect(bare.recentFollowUps).toEqual([]);
+  });
+
+  it("AC-13: bands low and high potential values at the documented thresholds", () => {
+    expect(buildLeadContext({ ...lead, valuePaise: 1_000_000 }).valueBand).toBe("UNDER_50K_INR");
+    expect(buildLeadContext({ ...lead, valuePaise: 30_000_000 }).valueBand).toBe("OVER_250K_INR");
+  });
+
   it("AC-13: message context includes only first name from contact identity", () => {
     const serialized = JSON.stringify(buildMessageContext(lead));
     expect(serialized).toContain("Priya");

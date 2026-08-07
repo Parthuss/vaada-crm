@@ -12,6 +12,13 @@ describe("safe AI fallbacks", () => {
     expect(result.caveat).toContain("rules-based");
   });
 
+  it("names the lack of an open follow-up when none is scheduled", () => {
+    const result = leadInsightFallback({ ...lead, followUps: [] });
+    expect(leadInsightSchema.parse(result)).toEqual(result);
+    expect(result.risk).toMatch(/no open follow-up/i);
+    expect(result.recommendedNextAction).toMatch(/schedule a specific next step/i);
+  });
+
   it("returns an editable schema-valid message without inventing an offer", () => {
     const result = messageFallback(lead, "WHATSAPP");
     expect(messageDraftSchema.parse(result)).toEqual(result);
@@ -23,6 +30,20 @@ describe("safe AI fallbacks", () => {
     const result = dailyBriefFallback([lead]);
     expect(dailyBriefSchema.parse(result)).toEqual(result);
     expect(result.priorities[0]?.leadId).toBe("lead-1");
+  });
+
+  it("gives a lead with no overdue work a forward-looking reason and action", () => {
+    const upcoming = { ...lead, id: "lead-2", followUps: [{ dueAt: new Date(Date.now() + 86_400_000), completedAt: null, note: "Confirm renewal date" }] };
+    const result = dailyBriefFallback([upcoming]);
+    expect(dailyBriefSchema.parse(result)).toEqual(result);
+    expect(result.priorities[0]?.reason).toMatch(/open next step/i);
+    expect(result.priorities[0]?.action).toBe("Confirm renewal date");
+  });
+
+  it("falls back to a generic action when a lead has no follow-ups at all", () => {
+    const bare = { id: "lead-3", name: "Arjun Nair", company: "Cedar Learning", status: "NEW" };
+    const result = dailyBriefFallback([bare]);
+    expect(result.priorities[0]?.action).toMatch(/schedule a specific next step/i);
   });
 
   it("handles an empty CRM without fabricating priorities", () => {

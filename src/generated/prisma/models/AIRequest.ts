@@ -40,6 +40,7 @@ export type AIRequestMinAggregateOutputType = {
   id: string | null
   ownerId: string | null
   useCase: $Enums.AiUseCase | null
+  model: string | null
   resultCategory: string | null
   durationMs: number | null
   retryCount: number | null
@@ -50,6 +51,7 @@ export type AIRequestMaxAggregateOutputType = {
   id: string | null
   ownerId: string | null
   useCase: $Enums.AiUseCase | null
+  model: string | null
   resultCategory: string | null
   durationMs: number | null
   retryCount: number | null
@@ -60,6 +62,7 @@ export type AIRequestCountAggregateOutputType = {
   id: number
   ownerId: number
   useCase: number
+  model: number
   resultCategory: number
   durationMs: number
   retryCount: number
@@ -82,6 +85,7 @@ export type AIRequestMinAggregateInputType = {
   id?: true
   ownerId?: true
   useCase?: true
+  model?: true
   resultCategory?: true
   durationMs?: true
   retryCount?: true
@@ -92,6 +96,7 @@ export type AIRequestMaxAggregateInputType = {
   id?: true
   ownerId?: true
   useCase?: true
+  model?: true
   resultCategory?: true
   durationMs?: true
   retryCount?: true
@@ -102,6 +107,7 @@ export type AIRequestCountAggregateInputType = {
   id?: true
   ownerId?: true
   useCase?: true
+  model?: true
   resultCategory?: true
   durationMs?: true
   retryCount?: true
@@ -199,6 +205,7 @@ export type AIRequestGroupByOutputType = {
   id: string
   ownerId: string
   useCase: $Enums.AiUseCase
+  model: string | null
   resultCategory: string
   durationMs: number | null
   retryCount: number
@@ -232,6 +239,7 @@ export type AIRequestWhereInput = {
   id?: Prisma.StringFilter<"AIRequest"> | string
   ownerId?: Prisma.StringFilter<"AIRequest"> | string
   useCase?: Prisma.EnumAiUseCaseFilter<"AIRequest"> | $Enums.AiUseCase
+  model?: Prisma.StringNullableFilter<"AIRequest"> | string | null
   resultCategory?: Prisma.StringFilter<"AIRequest"> | string
   durationMs?: Prisma.IntNullableFilter<"AIRequest"> | number | null
   retryCount?: Prisma.IntFilter<"AIRequest"> | number
@@ -243,6 +251,7 @@ export type AIRequestOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   ownerId?: Prisma.SortOrder
   useCase?: Prisma.SortOrder
+  model?: Prisma.SortOrderInput | Prisma.SortOrder
   resultCategory?: Prisma.SortOrder
   durationMs?: Prisma.SortOrderInput | Prisma.SortOrder
   retryCount?: Prisma.SortOrder
@@ -257,6 +266,7 @@ export type AIRequestWhereUniqueInput = Prisma.AtLeast<{
   NOT?: Prisma.AIRequestWhereInput | Prisma.AIRequestWhereInput[]
   ownerId?: Prisma.StringFilter<"AIRequest"> | string
   useCase?: Prisma.EnumAiUseCaseFilter<"AIRequest"> | $Enums.AiUseCase
+  model?: Prisma.StringNullableFilter<"AIRequest"> | string | null
   resultCategory?: Prisma.StringFilter<"AIRequest"> | string
   durationMs?: Prisma.IntNullableFilter<"AIRequest"> | number | null
   retryCount?: Prisma.IntFilter<"AIRequest"> | number
@@ -268,6 +278,7 @@ export type AIRequestOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   ownerId?: Prisma.SortOrder
   useCase?: Prisma.SortOrder
+  model?: Prisma.SortOrderInput | Prisma.SortOrder
   resultCategory?: Prisma.SortOrder
   durationMs?: Prisma.SortOrderInput | Prisma.SortOrder
   retryCount?: Prisma.SortOrder
@@ -286,6 +297,7 @@ export type AIRequestScalarWhereWithAggregatesInput = {
   id?: Prisma.StringWithAggregatesFilter<"AIRequest"> | string
   ownerId?: Prisma.StringWithAggregatesFilter<"AIRequest"> | string
   useCase?: Prisma.EnumAiUseCaseWithAggregatesFilter<"AIRequest"> | $Enums.AiUseCase
+  model?: Prisma.StringNullableWithAggregatesFilter<"AIRequest"> | string | null
   resultCategory?: Prisma.StringWithAggregatesFilter<"AIRequest"> | string
   durationMs?: Prisma.IntNullableWithAggregatesFilter<"AIRequest"> | number | null
   retryCount?: Prisma.IntWithAggregatesFilter<"AIRequest"> | number
@@ -295,6 +307,7 @@ export type AIRequestScalarWhereWithAggregatesInput = {
 export type AIRequestCreateInput = {
   id?: string
   useCase: $Enums.AiUseCase
+  model?: string | null
   resultCategory: string
   durationMs?: number | null
   retryCount?: number
@@ -306,6 +319,7 @@ export type AIRequestUncheckedCreateInput = {
   id?: string
   ownerId: string
   useCase: $Enums.AiUseCase
+  model?: string | null
   resultCategory: string
   durationMs?: number | null
   retryCount?: number
@@ -315,6 +329,7 @@ export type AIRequestUncheckedCreateInput = {
 export type AIRequestUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   useCase?: Prisma.EnumAiUseCaseFieldUpdateOperationsInput | $Enums.AiUseCase
+  model?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   resultCategory?: Prisma.StringFieldUpdateOperationsInput | string
   durationMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   retryCount?: Prisma.IntFieldUpdateOperationsInput | number
@@ -326,6 +341,7 @@ export type AIRequestUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   ownerId?: Prisma.StringFieldUpdateOperationsInput | string
   useCase?: Prisma.EnumAiUseCaseFieldUpdateOperationsInput | $Enums.AiUseCase
+  model?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   resultCategory?: Prisma.StringFieldUpdateOperationsInput | string
   durationMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   retryCount?: Prisma.IntFieldUpdateOperationsInput | number
@@ -336,6 +352,7 @@ export type AIRequestCreateManyInput = {
   id?: string
   ownerId: string
   useCase: $Enums.AiUseCase
+  model?: string | null
   resultCategory: string
   durationMs?: number | null
   retryCount?: number
@@ -345,6 +362,7 @@ export type AIRequestCreateManyInput = {
 export type AIRequestUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   useCase?: Prisma.EnumAiUseCaseFieldUpdateOperationsInput | $Enums.AiUseCase
+  model?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   resultCategory?: Prisma.StringFieldUpdateOperationsInput | string
   durationMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   retryCount?: Prisma.IntFieldUpdateOperationsInput | number
@@ -355,6 +373,7 @@ export type AIRequestUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   ownerId?: Prisma.StringFieldUpdateOperationsInput | string
   useCase?: Prisma.EnumAiUseCaseFieldUpdateOperationsInput | $Enums.AiUseCase
+  model?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   resultCategory?: Prisma.StringFieldUpdateOperationsInput | string
   durationMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   retryCount?: Prisma.IntFieldUpdateOperationsInput | number
@@ -375,6 +394,7 @@ export type AIRequestCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   ownerId?: Prisma.SortOrder
   useCase?: Prisma.SortOrder
+  model?: Prisma.SortOrder
   resultCategory?: Prisma.SortOrder
   durationMs?: Prisma.SortOrder
   retryCount?: Prisma.SortOrder
@@ -390,6 +410,7 @@ export type AIRequestMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   ownerId?: Prisma.SortOrder
   useCase?: Prisma.SortOrder
+  model?: Prisma.SortOrder
   resultCategory?: Prisma.SortOrder
   durationMs?: Prisma.SortOrder
   retryCount?: Prisma.SortOrder
@@ -400,6 +421,7 @@ export type AIRequestMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   ownerId?: Prisma.SortOrder
   useCase?: Prisma.SortOrder
+  model?: Prisma.SortOrder
   resultCategory?: Prisma.SortOrder
   durationMs?: Prisma.SortOrder
   retryCount?: Prisma.SortOrder
@@ -456,6 +478,7 @@ export type AIRequestUncheckedUpdateManyWithoutOwnerNestedInput = {
 export type AIRequestCreateWithoutOwnerInput = {
   id?: string
   useCase: $Enums.AiUseCase
+  model?: string | null
   resultCategory: string
   durationMs?: number | null
   retryCount?: number
@@ -465,6 +488,7 @@ export type AIRequestCreateWithoutOwnerInput = {
 export type AIRequestUncheckedCreateWithoutOwnerInput = {
   id?: string
   useCase: $Enums.AiUseCase
+  model?: string | null
   resultCategory: string
   durationMs?: number | null
   retryCount?: number
@@ -504,6 +528,7 @@ export type AIRequestScalarWhereInput = {
   id?: Prisma.StringFilter<"AIRequest"> | string
   ownerId?: Prisma.StringFilter<"AIRequest"> | string
   useCase?: Prisma.EnumAiUseCaseFilter<"AIRequest"> | $Enums.AiUseCase
+  model?: Prisma.StringNullableFilter<"AIRequest"> | string | null
   resultCategory?: Prisma.StringFilter<"AIRequest"> | string
   durationMs?: Prisma.IntNullableFilter<"AIRequest"> | number | null
   retryCount?: Prisma.IntFilter<"AIRequest"> | number
@@ -513,6 +538,7 @@ export type AIRequestScalarWhereInput = {
 export type AIRequestCreateManyOwnerInput = {
   id?: string
   useCase: $Enums.AiUseCase
+  model?: string | null
   resultCategory: string
   durationMs?: number | null
   retryCount?: number
@@ -522,6 +548,7 @@ export type AIRequestCreateManyOwnerInput = {
 export type AIRequestUpdateWithoutOwnerInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   useCase?: Prisma.EnumAiUseCaseFieldUpdateOperationsInput | $Enums.AiUseCase
+  model?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   resultCategory?: Prisma.StringFieldUpdateOperationsInput | string
   durationMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   retryCount?: Prisma.IntFieldUpdateOperationsInput | number
@@ -531,6 +558,7 @@ export type AIRequestUpdateWithoutOwnerInput = {
 export type AIRequestUncheckedUpdateWithoutOwnerInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   useCase?: Prisma.EnumAiUseCaseFieldUpdateOperationsInput | $Enums.AiUseCase
+  model?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   resultCategory?: Prisma.StringFieldUpdateOperationsInput | string
   durationMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   retryCount?: Prisma.IntFieldUpdateOperationsInput | number
@@ -540,6 +568,7 @@ export type AIRequestUncheckedUpdateWithoutOwnerInput = {
 export type AIRequestUncheckedUpdateManyWithoutOwnerInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   useCase?: Prisma.EnumAiUseCaseFieldUpdateOperationsInput | $Enums.AiUseCase
+  model?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   resultCategory?: Prisma.StringFieldUpdateOperationsInput | string
   durationMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   retryCount?: Prisma.IntFieldUpdateOperationsInput | number
@@ -552,6 +581,7 @@ export type AIRequestSelect<ExtArgs extends runtime.Types.Extensions.InternalArg
   id?: boolean
   ownerId?: boolean
   useCase?: boolean
+  model?: boolean
   resultCategory?: boolean
   durationMs?: boolean
   retryCount?: boolean
@@ -563,6 +593,7 @@ export type AIRequestSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ext
   id?: boolean
   ownerId?: boolean
   useCase?: boolean
+  model?: boolean
   resultCategory?: boolean
   durationMs?: boolean
   retryCount?: boolean
@@ -574,6 +605,7 @@ export type AIRequestSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ext
   id?: boolean
   ownerId?: boolean
   useCase?: boolean
+  model?: boolean
   resultCategory?: boolean
   durationMs?: boolean
   retryCount?: boolean
@@ -585,13 +617,14 @@ export type AIRequestSelectScalar = {
   id?: boolean
   ownerId?: boolean
   useCase?: boolean
+  model?: boolean
   resultCategory?: boolean
   durationMs?: boolean
   retryCount?: boolean
   createdAt?: boolean
 }
 
-export type AIRequestOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "ownerId" | "useCase" | "resultCategory" | "durationMs" | "retryCount" | "createdAt", ExtArgs["result"]["aIRequest"]>
+export type AIRequestOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "ownerId" | "useCase" | "model" | "resultCategory" | "durationMs" | "retryCount" | "createdAt", ExtArgs["result"]["aIRequest"]>
 export type AIRequestInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   owner?: boolean | Prisma.UserDefaultArgs<ExtArgs>
 }
@@ -611,6 +644,7 @@ export type $AIRequestPayload<ExtArgs extends runtime.Types.Extensions.InternalA
     id: string
     ownerId: string
     useCase: $Enums.AiUseCase
+    model: string | null
     resultCategory: string
     durationMs: number | null
     retryCount: number
@@ -1042,6 +1076,7 @@ export interface AIRequestFieldRefs {
   readonly id: Prisma.FieldRef<"AIRequest", 'String'>
   readonly ownerId: Prisma.FieldRef<"AIRequest", 'String'>
   readonly useCase: Prisma.FieldRef<"AIRequest", 'AiUseCase'>
+  readonly model: Prisma.FieldRef<"AIRequest", 'String'>
   readonly resultCategory: Prisma.FieldRef<"AIRequest", 'String'>
   readonly durationMs: Prisma.FieldRef<"AIRequest", 'Int'>
   readonly retryCount: Prisma.FieldRef<"AIRequest", 'Int'>

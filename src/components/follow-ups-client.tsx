@@ -158,7 +158,7 @@ export function FollowUpsClient({
                 </time>
                 <button
                   className="button secondary"
-                  style={{ width: 40, padding: 0 }}
+                  style={{ width: 44, padding: 0 }}
                   aria-label={`Complete follow-up for ${item.lead.company}`}
                   disabled={pending === item.id}
                   onClick={() => complete(item.id)}
@@ -167,7 +167,7 @@ export function FollowUpsClient({
                 </button>
                 <button
                   className="button secondary"
-                  style={{ width: 40, padding: 0 }}
+                  style={{ width: 44, padding: 0 }}
                   aria-label={`Edit follow-up for ${item.lead.company}`}
                   onClick={() => {
                     setEditing(item);
@@ -178,7 +178,7 @@ export function FollowUpsClient({
                 </button>
                 <button
                   className="button danger"
-                  style={{ width: 40, padding: 0 }}
+                  style={{ width: 44, padding: 0 }}
                   aria-label={`Delete follow-up for ${item.lead.company}`}
                   disabled={pending === item.id}
                   onClick={() => remove(item)}
@@ -239,7 +239,7 @@ export function FollowUpsClient({
               </div>
               <button
                 className="button secondary"
-                style={{ padding: 0, width: 42 }}
+                style={{ padding: 0, width: 44 }}
                 aria-label="Close"
                 onClick={closeDialog}
               >

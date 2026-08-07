@@ -16,4 +16,9 @@ describe("lead input", () => {
     expect(result.success).toBe(false);
     if (!result.success) expect(result.error.issues.some((issue) => issue.path.includes(path))).toBe(true);
   });
+
+  it("AC-3: treats a null potential value the same as blank, not zero", () => {
+    const result = leadInputSchema.parse({ name: "A", company: "Acme", status: "NEW", valuePaise: null });
+    expect(result.valuePaise).toBeNull();
+  });
 });

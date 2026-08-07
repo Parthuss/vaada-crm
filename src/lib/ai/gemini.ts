@@ -26,7 +26,7 @@ export async function generateStructured<T>({ ownerId, useCase, context, instruc
   if (isAiRateLimited(recentCount)) throw new Error("AI_RATE_LIMIT");
   if (!process.env.GEMINI_API_KEY) throw new AiGenerationError("UNAVAILABLE", "GEMINI_NOT_CONFIGURED");
 
-  const request = await db.aIRequest.create({ data: { ownerId, useCase, resultCategory: "STARTED" } });
+  const request = await db.aIRequest.create({ data: { ownerId, useCase, model: MODEL, resultCategory: "STARTED" } });
   const started = Date.now();
   let retryCount = 0;
   try {
@@ -39,12 +39,14 @@ export async function generateStructured<T>({ ownerId, useCase, context, instruc
           config: { systemInstruction: SYSTEM_INSTRUCTION, responseMimeType: "application/json", responseJsonSchema: z.toJSONSchema(schema), httpOptions: { timeout: 12_000 } },
         });
         const data = parseValidatedJson(response.text ?? "", schema);
-        await db.aIRequest.update({ where: { id: request.id }, data: { resultCategory: "SUCCESS", durationMs: Date.now() - started, retryCount } });
+        const durationMs = Date.now() - started;
+        await db.aIRequest.update({ where: { id: request.id }, data: { resultCategory: "SUCCESS", durationMs, retryCount } });
+        console.log(JSON.stringify({ level: "info", event: "ai_request", requestId: request.id, useCase, model: MODEL, resultCategory: "SUCCESS", durationMs, retryCount }));
         return { data, model: MODEL };
       } catch (error) {
         const message = error instanceof Error ? error.message : "";
         const category: AiErrorCategory = message.startsWith("INVALID_RESPONSE") ? "INVALID_RESPONSE" : classifyAiError(error);
-        if (attempt === 0 && category === "TRANSIENT") {
+        if (attempt === 0 && (category === "TRANSIENT" || category === "RATE_LIMITED")) {
           retryCount = 1;
           await wait(300 + Math.floor(Math.random() * 350));
           continue;
@@ -55,7 +57,9 @@ export async function generateStructured<T>({ ownerId, useCase, context, instruc
     throw new AiGenerationError("UNAVAILABLE");
   } catch (error) {
     const category = error instanceof AiGenerationError ? error.category : classifyAiError(error);
-    await db.aIRequest.update({ where: { id: request.id }, data: { resultCategory: category, durationMs: Date.now() - started, retryCount } });
+    const durationMs = Date.now() - started;
+    await db.aIRequest.update({ where: { id: request.id }, data: { resultCategory: category, durationMs, retryCount } });
+    console.error(JSON.stringify({ level: "error", event: "ai_request", requestId: request.id, useCase, model: MODEL, resultCategory: category, durationMs, retryCount }));
     throw error instanceof AiGenerationError ? error : new AiGenerationError(category);
   }
 }

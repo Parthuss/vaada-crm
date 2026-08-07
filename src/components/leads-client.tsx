@@ -179,7 +179,7 @@ export function LeadsClient({
                         );
                       })()
                     ) : (
-                      <span className="subtle">Not scheduled</span>
+                      <Link href={`/leads/${lead.id}`} className="text-link">Schedule one</Link>
                     )}
                   </td>
                   <td role="cell" className="subtle" data-label="Updated">{formatDateTime(lead.updatedAt)}</td>
@@ -217,7 +217,7 @@ export function LeadsClient({
               </div>
               <button
                 className="button secondary"
-                style={{ padding: 0, width: 42 }}
+                style={{ padding: 0, width: 44 }}
                 aria-label="Close"
                 onClick={closeDialog}
               >

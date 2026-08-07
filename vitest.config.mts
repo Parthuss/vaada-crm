@@ -7,7 +7,7 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       reporter: ["text", "json", "html"],
-      thresholds: { lines: 70, functions: 70, statements: 70, branches: 60 },
+      thresholds: { lines: 90, functions: 100, statements: 90, branches: 80 },
       include: ["src/lib/domain/**/*.ts", "src/lib/ai/**/*.ts"],
       exclude: ["src/lib/ai/gemini.ts", "src/lib/ai/schemas.ts"],
     },

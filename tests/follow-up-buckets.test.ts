@@ -19,4 +19,12 @@ describe("follow-up business-time classification", () => {
     ];
     expect(sortAttentionItems(items, now).map((item) => item.id)).toEqual(["late", "today", "future"]);
   });
+
+  it("AC-8: breaks ties within the same bucket by earliest due time", () => {
+    const items = [
+      { id: "later-overdue", dueAt: new Date("2026-08-04T08:30:00Z") },
+      { id: "earlier-overdue", dueAt: new Date("2026-08-02T08:30:00Z") },
+    ];
+    expect(sortAttentionItems(items, now).map((item) => item.id)).toEqual(["earlier-overdue", "later-overdue"]);
+  });
 });
