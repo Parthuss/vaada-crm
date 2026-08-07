@@ -40,3 +40,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Local demo recording artifacts (not part of the app)
+vaada-demo.mp4
+vaada-demo.srt
