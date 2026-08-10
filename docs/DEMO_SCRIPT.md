@@ -1,5 +1,7 @@
 # 15-minute live demo plan
 
+> Quick reference. For the full run sheet with timings, setup checklist, what to cut if you're running long, and what to do if the live demo breaks, see [`PRESENTATION.md`](./PRESENTATION.md). Slides for the system-design half are in [`system-design-deck.html`](./system-design-deck.html).
+
 ## Product walkthrough — 6 minutes
 
 1. **Login (20s):** use the pre-filled demo account; mention bcrypt and JWT sessions.
