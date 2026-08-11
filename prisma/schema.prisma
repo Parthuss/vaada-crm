@@ -12,6 +12,7 @@ enum LeadStatus {
   CONTACTED
   QUALIFIED
   PROPOSAL
+  NEGOTIATION
   WON
   LOST
 }

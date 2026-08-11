@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Plus, Search, X } from "lucide-react";
 import { formatDateTime, formatInr, formatStatus } from "@/lib/format";
 import { classifyFollowUp } from "@/lib/domain/follow-ups";
+import { LEAD_STATUSES } from "@/lib/domain/lead-status";
 import { useDialogA11y } from "@/components/use-dialog-a11y";
 
 type Lead = {
@@ -23,7 +24,7 @@ type Lead = {
   updatedAt: string;
   followUps: Array<{ dueAt: string }>;
 };
-const statuses = ["NEW", "CONTACTED", "QUALIFIED", "PROPOSAL", "WON", "LOST"];
+const statuses = LEAD_STATUSES;
 
 export function LeadsClient({
   initialLeads,

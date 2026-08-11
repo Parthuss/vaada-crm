@@ -14,6 +14,7 @@ export const LeadStatus = {
   CONTACTED: 'CONTACTED',
   QUALIFIED: 'QUALIFIED',
   PROPOSAL: 'PROPOSAL',
+  NEGOTIATION: 'NEGOTIATION',
   WON: 'WON',
   LOST: 'LOST'
 } as const

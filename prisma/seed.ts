@@ -29,6 +29,9 @@ async function main() {
     { name: "Vikram Iyer", company: "BluePeak Solar", email: "vikram@example.com", phone: "+91 98450 66221", city: "Bengaluru", industry: "Clean energy", source: "Trade event", valuePaise: 680_000_00, status: "NEW" as const, notes: "Met at SME Growth Summit. Team of twelve field salespeople." },
     { name: "Meera Bansal", company: "Nadi Wellness", email: "meera@example.com", phone: "+91 98188 44003", city: "Delhi", industry: "Wellness", source: "Partner", valuePaise: 310_000_00, status: "WON" as const, notes: "Pilot approved. Handoff to onboarding after contract countersignature." },
     { name: "Arjun Nair", company: "Cedar Learning", email: "arjun@example.com", phone: "+91 98950 33119", city: "Kochi", industry: "Education", source: "Outbound", valuePaise: 190_000_00, status: "LOST" as const, notes: "Paused budget until next quarter. Permission to reconnect in October." },
+    // Appended rather than inserted: the follow-ups below reference leads by their index in
+    // this array, so inserting mid-list would silently reassign them to the wrong leads.
+    { name: "Kavya Reddy", company: "Rukmini Textiles", email: "kavya@example.com", phone: "+91 90030 21145", city: "Hyderabad", industry: "Textiles", source: "Referral", valuePaise: 540_000_00, status: "NEGOTIATION" as const, notes: "Agreed on scope. Negotiating final pricing and a 12-month contract term." },
   ];
   const created = [];
   for (const lead of seedLeads) created.push(await db.lead.create({ data: { ...lead, ownerId: user.id } }));
@@ -39,6 +42,7 @@ async function main() {
     { ownerId: user.id, leadId: created[3].id, kind: "CALL", dueAt: zonedAt(0, 17), note: "Book a discovery call with the field sales lead" },
     { ownerId: user.id, leadId: created[0].id, kind: "MEETING", dueAt: zonedAt(2, 12), note: "Review commercial proposal with operations" },
     { ownerId: user.id, leadId: created[4].id, kind: "EMAIL", dueAt: zonedAt(-3, 10), note: "Send onboarding introduction", completedAt: zonedAt(-3, 11) },
+    { ownerId: user.id, leadId: created[6].id, kind: "MEETING", dueAt: zonedAt(1, 15), note: "Agree final pricing and contract terms" },
   ] });
   console.log(`Vaada demo seeded for ${email}`);
 }

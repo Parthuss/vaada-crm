@@ -3,6 +3,7 @@ import { Plus, ArrowRight } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { db } from "@/lib/db";
 import { classifyFollowUp, sortAttentionItems } from "@/lib/domain/follow-ups";
+import { LEAD_STATUSES, isClosedStatus } from "@/lib/domain/lead-status";
 import { formatDateTime, formatInr, formatStatus } from "@/lib/format";
 import { requireUserId } from "@/lib/session";
 
@@ -16,9 +17,9 @@ export default async function DashboardPage() {
     db.followUp.findMany({ where: { ownerId, completedAt: { not: null }, lead: { archivedAt: null } }, include: { lead: { select: { id: true, company: true } } }, orderBy: { completedAt: "desc" }, take: 5 }),
   ]);
   const attention = sortAttentionItems(followUps).map((item) => ({ ...item, bucket: classifyFollowUp(item.dueAt) }));
-  const activeLeads = leads.filter((lead) => !["WON", "LOST"].includes(lead.status));
+  const activeLeads = leads.filter((lead) => !isClosedStatus(lead.status));
   const pipeline = activeLeads.reduce((sum, lead) => sum + (lead.valuePaise ?? 0), 0);
-  const stages = ["NEW", "CONTACTED", "QUALIFIED", "PROPOSAL", "WON", "LOST"];
+  const stages = LEAD_STATUSES;
   const maximum = Math.max(1, ...stages.map((status) => leads.filter((lead) => lead.status === status).length));
   const todayLabel = new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", weekday: "long", day: "numeric", month: "long" }).format(new Date());
   return <div className="page">

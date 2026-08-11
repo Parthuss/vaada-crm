@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { formatDateTime, formatInr, formatStatus } from "@/lib/format";
 import { classifyFollowUp } from "@/lib/domain/follow-ups";
+import { LEAD_STATUSES } from "@/lib/domain/lead-status";
 
 type FollowUp = {
   id: string;
@@ -52,7 +53,7 @@ type Draft = {
   safetyNote: string;
 };
 type AiOrigin = { source: "gemini" | "fallback"; model?: string };
-const statuses = ["NEW", "CONTACTED", "QUALIFIED", "PROPOSAL", "WON", "LOST"];
+const statuses = LEAD_STATUSES;
 
 export function LeadDetailClient({ initialLead }: { initialLead: Lead }) {
   const router = useRouter();

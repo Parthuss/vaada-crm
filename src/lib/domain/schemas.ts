@@ -1,6 +1,7 @@
 import { z } from "zod";
+import { LEAD_STATUSES } from "@/lib/domain/lead-status";
 
-export const leadStatusSchema = z.enum(["NEW", "CONTACTED", "QUALIFIED", "PROPOSAL", "WON", "LOST"]);
+export const leadStatusSchema = z.enum(LEAD_STATUSES);
 
 const optionalText = (max: number) => z.string().trim().max(max).optional().or(z.literal(""));
 

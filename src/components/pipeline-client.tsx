@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { formatInr, formatStatus } from "@/lib/format";
+import { LEAD_STATUSES } from "@/lib/domain/lead-status";
 
 type Lead = {
   id: string;
@@ -19,7 +20,7 @@ type Lead = {
   updatedAt: string;
 };
 
-const stages = ["NEW", "CONTACTED", "QUALIFIED", "PROPOSAL", "WON", "LOST"];
+const stages = LEAD_STATUSES;
 
 export function PipelineClient({ initialLeads }: { initialLeads: Lead[] }) {
   const [leads, setLeads] = useState(initialLeads);
