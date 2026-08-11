@@ -10,7 +10,9 @@ This assumes you know nothing and builds up. Read it in order. Every concept is 
 
 **If you have a day**, read Parts 1 through 6, then do the drill in Part 9 out loud. Out loud matters. Reading an answer and saying an answer are different skills, and the interview tests the second one.
 
-**If you have three days**, read all of it, then open the actual files listed in Part 10 and read the real code with this guide next to you.
+**If you have three days**, add Part 10 (what every folder and file actually contains) and Part 11, which is the whole technical interview written from the interviewer's side, organised by the exact areas the brief says they'll probe. Part 11 is the longest section and the closest to what will actually happen, including the "change a small thing" questions worked through step by step.
+
+**Then open the real code.** Part 10 maps it. Reading the actual files with this guide beside you is what turns recited answers into ones that survive a follow-up.
 
 Five things carry most of the interview. If you understand nothing else, understand these:
 
@@ -524,7 +526,60 @@ Pick something true. A good answer is making the AI layer fail well: it's easy t
 
 ---
 
-## Part 10 — Files to have open
+## Part 10 — Map of the codebase
+
+File paths are useless if you don't know what's inside them. Here's the whole thing in plain terms.
+
+### The four folders that matter
+
+**`prisma/`** — the database.
+`schema.prisma` declares every table and column. `migrations/` holds the recorded changes to that structure. `seed.ts` fills a fresh database with the demo user and six leads.
+
+**`src/lib/`** — logic with no user interface. The reusable core.
+
+- `auth.ts` — how login works. Checks the password with bcrypt.
+- `session.ts` — `requireUserId()`, which every protected route calls first to find out who's asking.
+- `db.ts` — the database connection.
+- `api.ts` — `apiError()`, which turns any thrown error into the right HTTP status and JSON shape. One place, so every endpoint fails identically.
+- `format.ts` — display helpers, e.g. turning paise into `₹4,20,000`.
+- `domain/schemas.ts` — the validation rules for leads and follow-ups. What counts as a valid email, how long notes can be.
+- `domain/follow-ups.ts` — the overdue/today/upcoming logic and the timezone handling.
+- `ai/context.ts` — builds what gets sent to Gemini. The privacy boundary.
+- `ai/schemas.ts` — the required shape of each AI response.
+- `ai/gemini.ts` — the actual call. Rate limit, timeout, retry, logging.
+- `ai/resilience.ts` — sorts errors into categories and validates JSON.
+- `ai/fallbacks.ts` — the rules-based versions used when Gemini is unavailable.
+
+**`src/app/`** — pages and endpoints. In Next.js the folder structure *is* the URL structure.
+
+- `app/(app)/` — the seven signed-in pages: dashboard, leads, leads/[id], pipeline, follow-ups, insights, plus a shared `layout.tsx`. The brackets in `[id]` mean "any value goes here", so `leads/[id]` serves `/leads/abc123`.
+- `app/api/` — the endpoints. `api/leads/route.ts` handles `/api/leads`, `api/leads/[id]/route.ts` handles one lead, and so on.
+- `app/login/`, `app/layout.tsx`, `app/page.tsx` — the signed-out surface and the root shell.
+- `app/health/` and `app/api/health/` — two health endpoints, both public.
+
+**`src/components/`** — the interactive UI. Seven files, all of them client components: `app-shell` (sidebar and nav), `login-form`, `leads-client` (table), `pipeline-client` (board), `lead-detail-client` (one lead plus its AI panel), `follow-ups-client`, `daily-brief`, and `use-dialog-a11y.ts` (the focus trap shared by every dialog).
+
+### The split that explains the frontend
+
+**Every page in `app/(app)/` is a server component. Every file in `components/` is a client component.** That's not accidental, it's the rule the frontend follows.
+
+Pages run on the server, so they query the database directly with Prisma and pass the results down as props. Components run in the browser, so they handle clicks and typing, and when they need to change something they `fetch` an API endpoint.
+
+That's why the dashboard never calls `/api/dashboard` even though that endpoint exists: the page is already on the server, so an HTTP call to itself would be a pointless round trip. But `daily-brief.tsx` runs in the browser, so it has to `fetch("/api/ai/daily-brief")`.
+
+### How one feature spans the layers
+
+Editing a lead, start to finish:
+
+1. `prisma/schema.prisma` says a Lead has a `company` column.
+2. `src/lib/domain/schemas.ts` says company is required, 1 to 120 characters.
+3. `src/components/lead-detail-client.tsx` renders the form and, on save, calls `fetch("/api/leads/<id>", { method: "PATCH" })`.
+4. `src/app/api/leads/[id]/route.ts` receives it, calls `requireUserId()`, validates with the Zod schema, and writes to the database with `ownerId` in the where clause.
+5. If anything throws, `src/lib/api.ts` converts it to the right status code.
+
+**Six layers, and almost every change touches some subset of them in that order.** That's the mental model to carry into any "how would you add X" question.
+
+### Quick lookup
 
 | If they ask about | Open |
 |---|---|
@@ -536,14 +591,283 @@ Pick something true. A good answer is making the AI layer fail well: it's easy t
 | Failure categories | `src/lib/ai/resilience.ts` |
 | Fallbacks | `src/lib/ai/fallbacks.ts` |
 | Date buckets and timezone | `src/lib/domain/follow-ups.ts` |
+| Validation rules | `src/lib/domain/schemas.ts` |
 | Error responses | `src/lib/api.ts` |
-| Tables | `prisma/schema.prisma` |
+| Tables and indexes | `prisma/schema.prisma` |
 | Health check | `src/app/api/health/route.ts` |
 | Trade-offs | `DECISIONS.md` |
 
 ---
 
-## Part 11 — Glossary
+## Part 11 — The technical interview, question by question
+
+This part is written from the other side of the table. I've read your submission, I've watched your demo, and now I'm probing. The brief says I'll ask about backend and APIs, database choices, frontend structure and UX decisions, AI integration depth, deployment and monitoring, and debugging and trade-offs under time pressure. So that's how this is organised.
+
+Quoted blocks are answers you can say more or less as written. The notes after them explain why that's the answer, so you can handle the follow-up rather than just the question.
+
+### 11.1 Backend design and APIs
+
+**"Walk me through your API."**
+
+> "REST endpoints under `/api`. Leads and follow-ups each have a collection endpoint and a single-item endpoint, so `/api/leads` lists and creates, `/api/leads/:id` reads, updates and archives. Follow-ups have an extra `/complete` endpoint because completing one is a distinct action rather than a general edit. Then three AI endpoints, one per use case, plus one for saving a result. Health is public, everything else requires a session."
+
+**"Why REST rather than GraphQL or tRPC?"**
+
+> "The shape of the data is simple and the clients are all mine, so GraphQL's flexibility would be overhead without a payoff. tRPC would have given me end-to-end types, which is genuinely nice, but Prisma already gives me types on the database side and Zod gives me validated types at the boundary, so the gap was small. REST also means the endpoints are inspectable with curl, which made debugging the deploy easier."
+
+**"Why is `/api/dashboard` there if the dashboard page doesn't use it?"**
+
+This one is a trap for people who don't know their own code. Be honest.
+
+> "Fair catch. The dashboard page is a server component so it queries Prisma directly, which avoids the app making an HTTP call to itself. The endpoint exists because I'd specified it, and it's the one another client would use. If I were tidying up I'd either delete it or make the page consume it, and I'd lean toward deleting it since nothing depends on it."
+
+Admitting a loose end you already knew about is much better than defending it.
+
+**"How do errors work?"**
+
+> "Every route is a try/catch, and the catch calls one shared `apiError()` helper. Route code throws a plain error like `NOT_FOUND` or `EDIT_CONFLICT`, and the helper maps that to the status code and a consistent JSON envelope: a code, a human-readable message, optional field errors, and a request ID. So every endpoint fails the same way and the client only has to understand one shape."
+
+**"Why 422 for validation and not 400?"**
+
+> "400 means I couldn't understand the request at all, so I use it for malformed JSON. 422 means I understood it fine but the contents failed the rules, like an email without an @. The distinction tells the client whether to fix the syntax or fix the values."
+
+**"What's the request ID for?"**
+
+> "It goes in the error response and in the server log for the same failure. If someone reports an error I can ask for the ID and find the exact log line, rather than guessing from a timestamp."
+
+### 11.2 Database
+
+**"Why Postgres?"**
+
+> "The data is relational. Leads belong to users, follow-ups belong to leads and users, AI results belong to both. Foreign keys let the database guarantee those relationships instead of me hoping application code gets it right. I'd have to reimplement that by hand in a document store. It also gave me one extra thing: the AI rate limit is a query against a table, which is correct across serverless instances in a way an in-memory counter wouldn't be."
+
+**"Walk me through the schema."**
+
+> "Five tables. `User`. `Lead`, which belongs to a user. `FollowUp`, which belongs to a lead and a user. Then two for AI: `AIResult` stores outputs a user explicitly saved, and `AIRequest` logs every call including failures."
+
+**"Why is the deal value an integer called `valuePaise`?"**
+
+> "It's rupees stored in paise, so ₹4,20,000 is 42000000. Money should never be a floating point number, because 0.1 isn't exactly representable in binary and the errors compound. Storing the smallest unit as an integer sidesteps it. The `Paise` suffix is there so nobody reads the field as rupees by mistake."
+
+**"What indexes do you have and why?"**
+
+> "Leads are indexed on owner plus archived, and owner plus status, because every list query filters on owner and then usually on one of those. Follow-ups are indexed on owner plus completed plus due date, which is exactly the dashboard's query, and separately on lead plus due date for a lead's own history. The AI tables are indexed on owner and created-at, which is what the rate limiter scans. **The rule was to index what the app actually queries, not every column.**"
+
+**"Why archive instead of delete?"**
+
+> "Deleting a lead would take its follow-up history with it, and in a CRM that history is the record of what you promised someone. So delete sets `archivedAt` and every default query filters on `archivedAt: null`. The row is gone from the user's view but recoverable and still auditable."
+
+**"What's `schemaVersion` on AIResult?"**
+
+> "It records which version of the output shape a saved result was validated against. If I change the lead-insight schema later, old saved results are still readable because I know which rules they were written under. Right now it's always 1, and the endpoint rejects anything else rather than accepting a value it can't honour."
+
+### 11.3 Frontend structure and UX decisions
+
+**"How is the frontend organised?"**
+
+> "Pages under `app/(app)` are server components, one per route. They fetch data with Prisma and pass it down. Everything interactive is a client component in `components/`, one per screen, plus a shared app shell for the sidebar and a shared hook for dialog focus handling. So the split is: pages fetch, components interact."
+
+**"How did you decide what's a server component and what's a client component?"**
+
+> "Default to server, opt into client only when something needs browser APIs, state, or event handlers. Server components don't ship their JavaScript to the browser, so keeping data fetching there means less code downloaded and no secrets leaking. Every one of my seven pages ended up server-side and every one of my seven components ended up client-side, which is roughly the split the App Router pushes you toward."
+
+**"Why both a table and a board for leads?"**
+
+> "They answer different questions. The table answers 'find me this specific lead' and supports search, sorting and scanning many rows. The board answers 'what does my pipeline look like' and makes stage the primary axis. Same data, same source, two views, because forcing one view to do both jobs makes it worse at each."
+
+**"You cut a metrics strip. Why?"**
+
+> "It was four cards across the top. Two of them, overdue and due-today counts, were re-stating what the attention queue directly below already showed with coloured dots and labels. Same information twice, and the version with more visual weight was the less useful one. The other two, active leads and open pipeline value, were real, so I moved them into the pipeline card as a subtitle where they have context. **The principle was that every element on the dashboard should support a decision, and a number you already read one section up doesn't.**"
+
+**"How do you handle loading states?"**
+
+> "AI actions can take several seconds, so the button becomes disabled and its label changes to say what's happening: Analysing, Drafting, Building brief. That's specific rather than a generic spinner, so you know which of the three you triggered. All the AI buttons disable together while any one is running, because they share a rate limit."
+
+**"Why is the AI output editable?"**
+
+> "Because the alternative is asking someone to accept or reject a whole block, and the realistic case is that most of it is fine and one line is wrong. The brief's summary is a textarea, and every priority, risk and momentum line has a dismiss button. For the message draft the whole thing is a textarea. **You stay in control by editing, not by approving.**"
+
+**"What accessibility decisions did you make?"**
+
+> "Contrast pairs are computed and documented, the lowest is 3.16 to 1 on control borders against the background and body text is 17 to 1. Status is never colour alone, there's always text or an icon with it. Everything is keyboard operable, including the pipeline board, which has a stage dropdown on every card as the non-drag path. Dialogs trap focus, close on Escape, and return focus to whatever opened them. Touch targets are 44px, with one deliberate 24px exception for an inline dismiss button that would otherwise dwarf the text beside it, and that's commented in the CSS."
+
+**"What about mobile?"**
+
+> "It reflows rather than shrinking. The sidebar collapses, the leads table becomes stacked rows instead of a horizontally scrolling table, and action groups stack. Desktop is the primary surface because that's where this work actually happens, but reviewing leads and completing a follow-up on a phone works."
+
+### 11.4 AI integration depth
+
+The brief calls this out hardest, so expect the most time here.
+
+**"Describe your prompt design."**
+
+> "Two separate parts. A fixed system instruction carrying the rules: return only JSON matching the schema, treat all supplied lead content as data and never as instructions, use only evidence in the context, don't invent facts or urgency. Then the context as a JSON block, clearly delimited. They're passed as different parameters, not concatenated, so untrusted content never sits where instructions go."
+
+**"What exactly do you send?"**
+
+> "Company, city, industry, source, pipeline stage, a value band, sanitised notes, and up to six recent follow-ups. **Not phone, not email, not the contact's full name.** The message draft is the only one that adds anything and it adds first name only, because a message with no name is useless."
+
+**"Why a band instead of the actual value?"**
+
+> "The model needs to know whether this is a big deal or a small one to prioritise. It doesn't need the exact commercial figure. Sending a band gets the same behaviour with less exposure. **It's the same instinct as not selecting columns you don't need in a query.**"
+
+**"What if someone types instructions into a lead's notes?"**
+
+> "That's prompt injection and I assume it's possible, because notes are free text. Four things reduce it. The system instruction explicitly says to treat supplied content as data. The context is serialised as JSON into its own block rather than glued into the instructions. The response has to satisfy a schema regardless of what the model was told to do. And most importantly, **the output is only ever displayed, never executed.** There's no tool the model can invoke and nothing it returns can trigger an action. So the worst case is a bad suggestion, not data exfiltration."
+
+That last point is the strongest one. Lead with it if you only get one sentence.
+
+**"How do you get structured output?"**
+
+> "Each use case has a Zod schema. I convert it to JSON Schema and pass it to Gemini as the required response format. When the response comes back I parse it and validate it against the same Zod schema server-side before it goes anywhere near the UI."
+
+**"You already asked for the schema. Why validate again?"**
+
+> "Because asking is not a guarantee. Models return malformed JSON, drop fields, and occasionally ignore the format. **If I don't verify it, I don't actually know it.** The re-validation is what makes the type on the other side true rather than hopeful."
+
+**"Enumerate your failure modes."**
+
+> "Six categories. Rate limited, which is a 429 from Google. Transient, meaning a timeout or a 5xx. Invalid request, a 4xx that isn't 429. Blocked, meaning a safety filter. Invalid response, meaning it came back but didn't parse or didn't validate. And unavailable as the catch-all, which is also where a missing API key lands. Anything I don't recognise degrades to unavailable rather than throwing something unhandled."
+
+**"Why retry only some of those?"**
+
+> "Transient and rate-limited might succeed on a second attempt. A malformed request or a safety block will fail identically, so retrying spends the timeout budget on a guaranteed failure and makes the user wait longer for the same answer. One retry only, with random jitter so that if many clients fail together they don't all return at the same instant."
+
+**"Walk me through the rate limit."**
+
+> "Five per user per rolling minute. I count rows in the AI request table created in the last sixty seconds and reject before calling Gemini. It's in the database rather than in memory because serverless instances don't share memory, so an in-process counter would let the effective limit be five times however many instances are warm. The trade-off is a database query on every AI request, and at real traffic I'd move it to Redis with a sliding window."
+
+**"What happens when Gemini is down?"**
+
+> "Each use case has a rules-based fallback built only from CRM data. It's validated against the same schema a real response is, and there's a test enforcing that, so the UI can't tell them apart and there's no second rendering path. The response carries a flag and a warning string so the interface can label it. **The endpoint returns a fallback rather than a 500, so the AI failing never breaks the page.**"
+
+**"Cost and safety awareness?"**
+
+> "Context is minimised, which reduces tokens as well as exposure. Notes are capped at 600 characters and follow-ups at six, so one lead with a huge history can't blow up a request. The brief looks at a maximum of thirty leads. Results are snapshots rather than a running conversation, so there's no growing history being resent. And the rate limit caps the worst case per user."
+
+**"What would you improve for production?"**
+
+> "Semantic PII redaction rather than field omission, because someone can always paste a phone number into a notes field. Prompt versioning with regression evals so a prompt change doesn't quietly make output worse. Queue the generation so it's off the request path and can be retried properly. Per-tenant cost tracking and budget caps. And caching identical briefs, since several people asking on the same morning get the same answer."
+
+### 11.5 Deployment, secrets, monitoring
+
+**"Describe the deploy topology."**
+
+> "One Vercel deployment serving pages and API routes, and one Neon Postgres database. Push to GitHub triggers the build. Prisma client generates on install, Next builds, and migrations are applied against the database. Both free tier."
+
+**"How are secrets handled, and how do you know the Gemini key isn't in the browser bundle?"**
+
+> "They're environment variables in Vercel, and `.env` files are gitignored with only `.env.example` committed. **The structural guarantee is that the key is only read inside `src/lib/ai/gemini.ts`, which starts with `import "server-only"`.** That's a package that makes the build fail if the module ends up in a client bundle. So it's enforced at build time, not by me remembering. On top of that, Next only exposes variables prefixed `NEXT_PUBLIC_` to the browser, and none of mine are."
+
+That `server-only` detail is a strong answer. Most people just say "it's in env vars".
+
+**"What's in your health check?"**
+
+> "It runs `SELECT 1` against the database and returns app status, database status, the deployed commit, and how long the query took. Database unreachable returns 503 and `degraded` rather than an HTML error page."
+
+**"Why does the uptime job parse the body instead of checking for a 200?"**
+
+> "Because an app can return 200 while its database is unreachable. If I only checked the status code the monitor would report healthy through a real outage. So the job requires both `status` and `database` to read ok, and fails the run otherwise."
+
+**"What monitoring would you add?"**
+
+> "Right now it's structured JSON logs to Vercel plus every AI call's outcome and duration in Postgres, which is enough to answer questions after the fact but doesn't page anyone. I'd add error tracking with alerting, distributed tracing so I can see a slow request end to end, and a dashboard on AI failure rate and cost. The specific alert I'd want first is AI failure rate crossing a threshold, because that's the thing most likely to degrade quietly."
+
+### 11.6 "Change a small thing" — worked examples
+
+The brief says this happens verbally. You describe the change, you don't type it. **Answer by walking the layers in order**: database, validation, endpoint, UI, AI context, test. Even for something you've never considered, naming the layers gets you most of the way.
+
+**"Add a website field to a lead."**
+
+> "Six places. First the database: add a nullable `website` column to the Lead model in the Prisma schema and generate a migration, nullable so existing rows stay valid. Second, validation: add it to `leadInputSchema` as an optional URL with a max length. Third, and this is the one that would bite me, **both the create and update endpoints list their fields explicitly rather than spreading the input object**, so I have to add it in both or it silently won't save. Fourth, the form and the detail view. Fifth, decide whether the AI should see it, and for a website I'd say no, it adds tokens without helping prioritise. Sixth, a test that a lead round-trips with it set and with it empty."
+
+The explicit-field-list detail is the thing that makes this answer sound like you wrote the code.
+
+**"Add a new pipeline stage between Qualified and Proposal."**
+
+> "The status is a database enum, so add the value to the enum in the schema and migrate. Postgres can add an enum value without rewriting the table. Then the Zod status schema, which lists the values for validation. Then the board, which renders columns from an ordered list of stages, so the new one goes in at the right position. Existing leads are unaffected because nothing is being removed. **The thing to be careful about is ordering: the enum's declaration order and the board's display order are two different things and both need updating.**"
+
+**"Add a filter by city to the leads list."**
+
+> "The list endpoint already reads a status filter and a search query from the URL. I'd add a city parameter, validate it, and add it to the Prisma where clause alongside the existing owner and archived filters. On the frontend, a select next to the existing status dropdown that updates the query string. If it got slow I'd add an index on owner plus city, but at six leads that's premature."
+
+**"Add an urgency field to the lead insight output."**
+
+This one has a trap. Knowing it is worth a lot.
+
+> "Add it to `leadInsightSchema` as an enum, say low, medium, high. That automatically flows into the JSON Schema sent to Gemini and into the validation of what comes back. Then render it. **But the trap is the fallback**: `leadInsightFallback` builds an object satisfying that same schema, and there's a test asserting it parses. Add a required field to the schema without adding it to the fallback and that test fails immediately. Which is exactly what I'd want it to do, it's the test doing its job. So it's four places: schema, fallback, UI, and the test's expectations."
+
+**"Change the AI rate limit from five to ten."**
+
+> "It's a default parameter on `isAiRateLimited` in the resilience module, so one number. But I'd push back on doing it that way. It should be an environment variable so it's tunable per deployment without a code change, and the free Gemini tier is the actual constraint, so I'd want to know what quota we're on before raising it."
+
+**"Add pagination to the leads list."**
+
+> "Cursor-based, not offset. Offset pagination re-scans rows it's going to skip, so it gets slower the deeper you go, and if a row is inserted while someone is paging they see a duplicate or miss one. Cursor means passing the last item's sort key and asking for the next N after it. The list is already ordered by updated-at descending, so the cursor is that timestamp plus the ID as a tiebreak. The endpoint returns the items plus a next cursor, and the client sends it back."
+
+**"Support multiple users at one company."**
+
+This is in the brief explicitly, under multi-tenant.
+
+> "Today every row hangs off a single owner. I'd add a Tenant table and a Membership table joining users to tenants with a role. Then `tenantId` moves onto Lead, FollowUp and both AI tables, and every compound index and uniqueness rule moves under it. The queries change from filtering by owner to filtering by tenant, with role checks for anything destructive. **And I'd add Postgres row-level security as a second layer**, so the isolation is enforced by the database rather than by every query remembering to filter. That's the part I'd actually want, because right now correctness depends on discipline."
+
+### 11.7 The asks where the answer is no
+
+Sometimes the request is a test of judgement. Say no, briefly, with a reason and an alternative.
+
+**"Send the phone number to Gemini as well."**
+
+> "I'd rather not, that's the privacy boundary the whole context builder exists to enforce. What's the goal? If it's so the draft can say 'I'll call you on your mobile', a boolean saying a phone number exists does that without sending the number."
+
+**"Make the daily brief save automatically."**
+
+> "That breaks the rule the AI layer is built on, which is that nothing is stored or acted on without a person choosing. Auto-save also means an unreviewed brief becomes the record. If the goal is not losing work, I'd keep a local draft and still require an explicit save."
+
+**"Just retry every failure a few times."**
+
+> "Retrying a malformed request or a safety block gets the identical failure, so it costs the user more waiting for the same answer, and on a 429 it makes the rate limiting worse. I retry the two categories that can plausibly succeed on a second attempt and fail fast on the rest."
+
+**"Skip the second validation, the schema is already enforced."**
+
+> "The schema is requested, not guaranteed. Providers return malformed JSON and occasionally ignore the format. That check is roughly one line and it's the difference between the type being true and being hopeful."
+
+### 11.8 Debugging under time pressure
+
+They'll describe a symptom and watch how you reason. **Say your reasoning out loud, don't jump to an answer.** Narrate: here's what I'd check first, here's what that would tell me, here's where I'd go next.
+
+**"A user says a follow-up shows as overdue but it isn't due until tomorrow."**
+
+> "First question is what time of day, because this smells like a timezone bug. The server runs in UTC and the business timezone is Asia/Kolkata, five and a half hours ahead. If anything compares raw dates instead of converting first, then between 6:30pm and midnight India time the UTC date is still yesterday, and things land in the wrong bucket. So I'd look at `classifyFollowUp`, confirm it's formatting both the due date and now into the India timezone before comparing, and write a test with a due time at 11pm India time to reproduce."
+
+**"AI calls fail sometimes but you can't reproduce it."**
+
+> "I wouldn't guess, I'd query. Every call writes a row to the AI request table with a result category, duration and retry count. So I'd group by category over the last day. If it's mostly rate-limited it's the five-per-minute limit and a user is clicking fast. If it's transient it's Google and the retry should be absorbing it, so I'd check whether the durations are near my twelve-second timeout. If it's invalid-response the model is drifting from the schema and I need to look at the prompt. **The categories exist precisely so this question is a query and not an investigation.**"
+
+**"Someone reports seeing another user's lead."**
+
+> "That's a stop-everything bug. I'd check whether the query for that endpoint has `ownerId` in its where clause, because the failure mode is a query that filters by ID alone with only a logged-in check above it. I'd grep every Prisma call for one missing the owner filter. Then I'd want to know how they got the ID, since guessing a cuid is impractical, so it probably leaked from somewhere. Longer term this is exactly what row-level security prevents, because then the database refuses regardless of what the query says."
+
+**"The deploy is up but every page 500s."**
+
+> "Check `/api/health` first, since it tells me whether the app is running and whether the database is reachable separately. If the app answers and the database is down, it's the connection string or Neon. If the app doesn't answer, it's the build or a missing environment variable, and Vercel's logs will say which. Env vars are the most likely cause right after a deploy, and the failure is usually loud and immediate rather than intermittent."
+
+### 11.9 The closing question
+
+**"What would you do differently?"**
+
+Don't say nothing. Don't list ten things either. Two, with reasons.
+
+> "Two things. I'd write the route tests. I concentrated testing on domain and AI logic where a silent bug is expensive, and that's defensible, but the routes are the actual contract boundary and they'd mock easily. Six point three four percent global coverage is the honest number and it's the first thing I'd fix.
+>
+> And I'd put row-level security in from the start. Owner scoping works, but it works because every query remembers to do it. Having the database enforce it removes a whole category of mistake instead of relying on discipline."
+
+**"Anything you're proud of?"**
+
+> "The AI layer failing well. Calling an API and printing the answer is the easy part. Most of the work was everything around it: minimising what gets sent, validating output I don't control, sorting failures into categories that make debugging a query, and building fallbacks good enough that the product still works with the AI completely unavailable."
+
+---
+
+## Part 12 — Glossary
 
 **API** — the set of endpoints into your backend.
 **Authentication** — proving who you are.
