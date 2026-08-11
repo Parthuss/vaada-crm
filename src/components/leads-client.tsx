@@ -155,7 +155,18 @@ export function LeadsClient({
             </thead>
             <tbody role="rowgroup">
               {filtered.map((lead) => (
-                <tr role="row" key={lead.id}>
+                <tr
+                  role="row"
+                  key={lead.id}
+                  className="row-clickable"
+                  onClick={(event) => {
+                    // Real <a> children (the name, "Schedule one") keep native link behaviour —
+                    // modifier-key and middle-click open-in-new-tab, no double navigation — this
+                    // only fires the row's own push when the click landed on inert cell content.
+                    if ((event.target as HTMLElement).closest("a")) return;
+                    router.push(`/leads/${lead.id}`);
+                  }}
+                >
                   <td role="cell" data-label="Lead">
                     <Link href={`/leads/${lead.id}`}>
                       <span className="lead-name">{lead.company}</span>

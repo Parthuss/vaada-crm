@@ -82,7 +82,7 @@ time, td { font-variant-numeric: tabular-nums; }
 .button.danger { color: var(--coral); background: var(--coral-soft); }
 .text-link { color: var(--primary); font-size: 13px; font-weight: 680; white-space: nowrap; flex: none; }
 .table-wrap { overflow-x: auto; }
-table { width: 100%; border-collapse: collapse; } th { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .07em; text-align: left; padding: 13px 18px; border-bottom: 1px solid var(--line); } td { padding: 16px 18px; border-bottom: 1px solid var(--line); font-size: 13px; } tr:last-child td { border-bottom: 0; } tbody tr:hover { background: var(--surface-2); }
+table { width: 100%; border-collapse: collapse; } th { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .07em; text-align: left; padding: 13px 18px; border-bottom: 1px solid var(--line); } td { padding: 16px 18px; border-bottom: 1px solid var(--line); font-size: 13px; } tr:last-child td { border-bottom: 0; } tbody tr:hover { background: var(--surface-2); }.row-clickable { cursor: pointer; }
 .lead-name { font-weight: 680; }.subtle { color: var(--muted); font-size: 12px; margin-top: 4px; }
 .badge { display: inline-flex; min-height: 25px; align-items: center; padding: 0 9px; border-radius: 99px; background: var(--primary-soft); color: var(--primary); font-size: 11px; font-weight: 720; letter-spacing: .03em; }
 .badge.overdue { background: var(--coral-soft); color: var(--coral); }.badge.today { background: var(--amber-soft); color: var(--amber); }
